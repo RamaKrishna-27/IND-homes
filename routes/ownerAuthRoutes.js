@@ -12,6 +12,8 @@ const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
   message: { error: 'Too many attempts. Please try again later.' }
+});
+
 const JWT_SECRET = process.env.JWT_SECRET || 'ind_homes_secret_jwt_key_default_development_2026';
 
 const COOKIE_OPTS = {

@@ -28,7 +28,7 @@ npm start
 This will automatically seed the default admin account + sample data on first run and start the server on `http://localhost:5000`.
 
 - Public Portal: `http://localhost:5000/`
-- Admin Login: `http://localhost:5000/admin-login.html` (Email: `admin@indhomes.com`, Password: `ChangeMe123!`)
+- Admin Login: `http://localhost:5000/admin-login.html` (Email: `ramakrishnapuvvala3@gmail.com`, Password: `prk@2007`)
 - Owner Portal: `http://localhost:5000/owner-login.html`
 - User Portal: `http://localhost:5000/user-login.html`
 

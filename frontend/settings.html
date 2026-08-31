@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Settings · IND Homes Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+      <div class="topbar">
+        <h2 id="topbar-title">Settings</h2>
+        <div class="actions"><span id="notifBell"></span></div>
+      </div>
+
+      <div class="card" style="max-width:420px;">
+        <h4 style="margin-top:0;">Change Password</h4>
+        <div id="alertBox"></div>
+        <form id="changePwForm">
+          <div class="field">
+            <label>Current Password</label>
+            <input type="password" id="currentPassword" required />
+          </div>
+          <div class="field">
+            <label>New Password</label>
+            <input type="password" id="newPassword" minlength="8" required />
+          </div>
+          <div class="field">
+            <label>Confirm New Password</label>
+            <input type="password" id="confirmNewPassword" minlength="8" required />
+          </div>
+          <button class="btn" type="submit">Change Password</button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    renderLayout('settings.html', 'Settings');
+
+    document.getElementById('changePwForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const alertBox = document.getElementById('alertBox');
+      alertBox.innerHTML = '';
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+      try {
+        const data = await api.post('/admin/auth/change-password', { currentPassword, newPassword, confirmNewPassword });
+        alertBox.innerHTML = `<div class="alert success">${escapeHtml(data.message)}</div>`;
+        e.target.reset();
+      } catch (err) {
+        alertBox.innerHTML = `<div class="alert error">${escapeHtml(err.message)}</div>`;
+      }
+    });
+  </script>
+</body>
+</html>

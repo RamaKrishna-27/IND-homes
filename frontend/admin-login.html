@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Admin Login · IND Homes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <h1>IND Homes Admin</h1>
+      <p class="sub">Sign in to manage properties, owners and users.</p>
+      <div id="alertBox"></div>
+      <form id="loginForm">
+        <div class="field">
+          <label for="email">Admin Email / Username</label>
+          <input type="email" id="email" required autocomplete="username" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" required autocomplete="current-password" />
+        </div>
+        <button class="btn block" type="submit" id="loginBtn">Admin Login</button>
+      </form>
+      <div class="link-row">
+        <a href="forgot-password.html">Forgot Password?</a>
+      </div>
+      <div class="link-row" style="margin-top:20px;color:var(--muted);">
+        <a href="owner-login.html">Owner Login</a> &nbsp;·&nbsp; <a href="user-login.html">User Login</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

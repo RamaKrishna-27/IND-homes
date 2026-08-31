@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Contact Requests · IND Homes Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+      <div class="topbar">
+        <h2 id="topbar-title">Contact Requests</h2>
+        <div class="actions"><span id="notifBell"></span></div>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <select id="statusFilter">
+            <option value="All">All Statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="CONTACTED">Contacted</option>
+            <option value="RESPONDED">Responded</option>
+            <option value="CLOSED">Closed</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+          <select id="typeFilter">
+            <option value="All">All Types</option>
+            <option value="Contact Owner">Contact Owner</option>
+            <option value="Schedule Visit">Schedule Visit</option>
+            <option value="General Enquiry">General Enquiry</option>
+          </select>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>User</th><th>Property</th><th>Owner</th><th>Type</th>
+              <th>Requested</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="reqTableBody">
+            <tr><td colspan="8" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/contacts.js"></script>
+</body>
+</html>

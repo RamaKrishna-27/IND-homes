@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Property Approval · IND Homes Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+      <div class="topbar">
+        <h2 id="topbar-title">Property Approval</h2>
+        <div class="actions"><span id="notifBell"></span></div>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <select id="statusFilter">
+            <option value="All">All</option>
+            <option value="PENDING_APPROVAL">Pending</option>
+            <option value="APPROVED">Approved</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="CHANGES_REQUESTED">Changes Requested</option>
+            <option value="SUSPENDED">Suspended</option>
+          </select>
+          <input type="text" id="searchBox" placeholder="Search by ID, name, owner, city, area" />
+          <button class="btn secondary" id="searchBtn">Search</button>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Property</th><th>Owner</th><th>City / Area</th><th>Type</th>
+              <th>Price</th><th>Submitted</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="propTableBody">
+            <tr><td colspan="9" class="empty-state">Loading properties...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay" style="display:none;">
+    <div class="modal" id="modalContent"></div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/properties.js"></script>
+</body>
+</html>

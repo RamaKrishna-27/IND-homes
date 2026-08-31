@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Dashboard · IND Homes Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+      <div class="topbar">
+        <h2 id="topbar-title">Dashboard</h2>
+        <div class="actions"><span id="notifBell" style="cursor:pointer;font-size:18px;" title="Notifications" onclick="window.location='dashboard.html#notifs'"></span></div>
+      </div>
+
+      <div class="stats-grid" id="statsGrid">
+        <div class="empty-state">Loading statistics...</div>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-top:0;">Recent Admin Notifications</h4>
+        <div id="notifList"><div class="empty-state">Loading...</div></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>IND Homes · Find Your Perfect Home</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="css/style.css" />
+<style>
+.hero{max-width:1100px;margin:40px auto;padding:52px 28px;text-align:center}.hero h1{font-size:44px;margin:0 0 10px}.hero p{color:var(--muted);font-size:18px}.search{display:flex;gap:10px;max-width:850px;margin:28px auto;flex-wrap:wrap}.search input,.search select{flex:1;min-width:180px;padding:13px;border:1px solid var(--border);border-radius:8px}.section{max-width:1100px;margin:25px auto}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}.property-card{padding:18px}.property-card h3{margin:0 0 8px}.property-card .muted{color:var(--muted);font-size:14px}.nav-actions{display:flex;gap:10px;align-items:center}.nav-actions a{white-space:nowrap}
+</style>
+</head>
+<body>
+  <main class="main" style="max-width:1200px;margin:0 auto;">
+    <div class="topbar">
+      <h2>IND Homes</h2>
+      <div class="nav-actions">
+        <a href="public-properties.html" class="btn secondary">Properties</a>
+        <a href="user-login.html" class="btn secondary" id="userLoginLink">User Login</a>
+        <a href="owner-login.html" class="btn">List Property</a>
+      </div>
+    </div>
+
+    <section class="hero card">
+      <h1>Find Your Perfect Home</h1>
+      <p>Discover verified properties for sale and rent with IND Homes.</p>
+      <form class="search" id="searchForm">
+        <input id="searchInput" placeholder="Search city, area or property" />
+        <select id="typeInput">
+          <option value="All">All Property Types</option>
+          <option value="Apartment">Apartment</option>
+          <option value="House">House</option>
+          <option value="Villa">Villa</option>
+          <option value="Plot">Plot</option>
+          <option value="Commercial">Commercial</option>
+        </select>
+        <button class="btn" type="submit">Search Properties</button>
+      </form>
+    </section>
+
+    <section class="section">
+      <div class="topbar"><h2>Featured Properties</h2><a href="public-properties.html">View all</a></div>
+      <div id="featured" class="cards"><div class="empty-state">Loading properties...</div></div>
+    </section>
+  </main>
+  <script src="js/api.js"></script>
+  <script>
+    const featured = document.getElementById('featured');
+    async function loadFeatured() {
+      try {
+        const data = await api.get('/properties');
+        const rows = (data.properties || []).slice(0, 6);
+        featured.innerHTML = rows.length ? rows.map(p => `
+          <article class="card property-card">
+            <h3>${escapeHtml(p.title)}</h3>
+            <div class="muted">${escapeHtml(p.city || '')}${p.area ? ', ' + escapeHtml(p.area) : ''}</div>
+            <p><strong>₹${Number(p.price || 0).toLocaleString('en-IN')}</strong></p>
+            <p class="muted">Owner: ${escapeHtml(p.owner.name)}</p>
+            <a class="btn secondary" href="property-details.html?id=${encodeURIComponent(p.id)}">View Property</a>
+          </article>`).join('') : '<div class="empty-state">No approved properties yet.</div>';
+      } catch (e) { featured.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`; }
+    }
+    document.getElementById('searchForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const q = encodeURIComponent(document.getElementById('searchInput').value.trim());
+      const type = encodeURIComponent(document.getElementById('typeInput').value);
+      window.location.href = `public-properties.html?search=${q}&type=${type}`;
+    });
+    loadFeatured();
+  </script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>My Account · IND Homes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="main" style="max-width:900px;margin:0 auto;">
+    <div class="topbar">
+      <h2>Welcome, <span id="userName">...</span></h2>
+      <div class="actions"><a href="#" id="logoutLink" class="btn secondary">Logout</a></div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-top:0;">My Enquiries</h4>
+      <table>
+        <thead>
+          <tr><th>Property</th><th>Owner</th><th>Type</th><th>Requested</th><th>Status</th></tr>
+        </thead>
+        <tbody id="reqBody">
+          <tr><td colspan="5" class="empty-state">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/portal-auth.js"></script>
+  <script>
+    (async () => {
+      await loadWhoAmI('user', 'userName');
+      document.getElementById('logoutLink').addEventListener('click', (e) => {
+        e.preventDefault();
+        logoutAs('user');
+      });
+
+      const tbody = document.getElementById('reqBody');
+      try {
+        const { requests } = await api.get('/user/requests');
+        if (!requests.length) {
+          tbody.innerHTML = `<tr><td colspan="5" class="empty-state">You haven't contacted any owners yet.</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = requests
+          .map(
+            (r) => `
+          <tr>
+            <td>${escapeHtml(r.property_title)}</td>
+            <td>${escapeHtml(r.owner_name)}</td>
+            <td>${escapeHtml(r.request_type)}</td>
+            <td>${fmtDate(r.created_at)}</td>
+            <td>${badge(r.status)}</td>
+          </tr>`
+          )
+          .join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" class="empty-state">${escapeHtml(err.message)}</td></tr>`;
+      }
+    })();
+  </script>
+</body>
+</html>

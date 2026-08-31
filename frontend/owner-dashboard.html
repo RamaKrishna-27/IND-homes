@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Owner Dashboard · IND Homes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="main" style="max-width:1100px;margin:0 auto;">
+    <div class="topbar">
+      <h2>Welcome, <span id="ownerName">...</span></h2>
+      <div class="actions"><a href="#" id="logoutLink" class="btn secondary">Logout</a></div>
+    </div>
+
+    <div class="card">
+      <h3>Add Your Property</h3>
+      <p class="sub">Add property information and image URLs. Your listing will be sent to the admin for approval before it appears publicly.</p>
+      <div id="formAlert"></div>
+      <form id="propertyForm">
+        <div class="form-grid">
+          <div class="field"><label>Property Title *</label><input name="title" required placeholder="2 BHK Apartment near Tadepalligudem" /></div>
+          <div class="field"><label>Property Type *</label><select name="propertyType" required><option value="">Select</option><option>Apartment</option><option>House</option><option>Villa</option><option>Plot</option><option>Commercial</option></select></div>
+          <div class="field"><label>Price (₹) *</label><input name="price" type="number" min="0" required /></div>
+          <div class="field"><label>BHK</label><input name="bhk" placeholder="2 BHK" /></div>
+          <div class="field"><label>Bedrooms</label><input name="bedrooms" type="number" min="0" /></div>
+          <div class="field"><label>Bathrooms</label><input name="bathrooms" type="number" min="0" /></div>
+          <div class="field"><label>Area (sq.ft)</label><input name="areaSqft" type="number" min="0" /></div>
+          <div class="field"><label>Furnishing</label><select name="furnishing"><option value="">Select</option><option>Unfurnished</option><option>Semi-Furnished</option><option>Fully Furnished</option></select></div>
+          <div class="field"><label>State *</label><input name="state" value="Andhra Pradesh" required /></div>
+          <div class="field"><label>City *</label><input name="city" required /></div>
+          <div class="field"><label>Area / Locality *</label><input name="area" required /></div>
+          <div class="field"><label>Pincode *</label><input name="pincode" inputmode="numeric" required /></div>
+          <div class="field"><label>Landmark</label><input name="landmark" /></div>
+          <div class="field"><label>Floor</label><input name="floor" /></div>
+          <div class="field"><label>Total Floors</label><input name="totalFloors" type="number" min="0" /></div>
+          <div class="field"><label>Property Age</label><input name="propertyAge" placeholder="New / 5 years" /></div>
+          <div class="field"><label>Deposit (₹)</label><input name="deposit" type="number" min="0" /></div>
+          <div class="field"><label>Maintenance (₹)</label><input name="maintenance" type="number" min="0" /></div>
+        </div>
+        <div class="field"><label>Description *</label><textarea name="description" rows="5" required placeholder="Describe the property, nearby facilities, road access, etc."></textarea></div>
+        <div class="field"><label>Amenities</label><input name="amenities" placeholder="Parking, Lift, Power Backup, Security" /></div>
+        <div class="field"><label>Property Images *</label><div id="imageInputs"><input name="imageUrl" type="url" required placeholder="https://example.com/property-photo-1.jpg" /></div><button type="button" class="btn secondary" id="addImage">+ Add another image</button><p class="hint">Add up to 12 public image URLs. Use direct image links (JPG, PNG, WEBP).</p></div>
+        <div class="toolbar"><button class="btn" type="submit" id="submitProperty">Submit for Admin Approval</button></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-top:0;">My Properties</h4>
+      <table><thead><tr><th>Property</th><th>Location</th><th>Price</th><th>Images</th><th>Status</th><th>Note</th></tr></thead><tbody id="propBody"><tr><td colspan="6" class="empty-state">Loading...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/portal-auth.js"></script>
+  <script>
+    const form = document.getElementById('propertyForm');
+    const imageInputs = document.getElementById('imageInputs');
+    document.getElementById('addImage').addEventListener('click', () => {
+      if (imageInputs.children.length >= 12) return;
+      const input = document.createElement('input'); input.name = 'imageUrl'; input.type = 'url'; input.placeholder = `https://example.com/property-photo-${imageInputs.children.length + 1}.jpg`; input.style.marginTop = '8px'; imageInputs.appendChild(input);
+    });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitProperty'); btn.disabled = true; btn.textContent = 'Submitting...';
+      document.getElementById('formAlert').innerHTML = '';
+      const fd = new FormData(form); const body = Object.fromEntries(fd.entries());
+      body.images = [...document.querySelectorAll('[name="imageUrl"]')].map(x => x.value.trim()).filter(Boolean);
+      body.amenities = String(body.amenities || '').split(',').map(x => x.trim()).filter(Boolean);
+      try {
+        await api.post('/owner/properties', body);
+        document.getElementById('formAlert').innerHTML = '<div class="alert success">Property submitted. Admin approval is required before it becomes public.</div>';
+        form.reset(); document.querySelector('[name="state"]').value = 'Andhra Pradesh'; imageInputs.innerHTML = '<input name="imageUrl" type="url" required placeholder="https://example.com/property-photo-1.jpg" />';
+        loadProperties();
+      } catch (err) { document.getElementById('formAlert').innerHTML = `<div class="alert error">${escapeHtml(err.message)}</div>`; }
+      finally { btn.disabled = false; btn.textContent = 'Submit for Admin Approval'; }
+    });
+
+    async function loadProperties() {
+      const tbody = document.getElementById('propBody');
+      try {
+        const { properties } = await api.get('/owner/properties');
+        if (!properties.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">You have not listed any properties yet.</td></tr>'; return; }
+        tbody.innerHTML = properties.map(p => `<tr><td><strong>${escapeHtml(p.title)}</strong><br><span class="muted-small">${escapeHtml(p.property_type || '-')}</span></td><td>${escapeHtml(p.city || '-')}${p.area ? ', ' + escapeHtml(p.area) : ''}</td><td>₹${Number(p.price || 0).toLocaleString('en-IN')}</td><td>${(p.images || []).length} photo(s)</td><td>${badge(p.status)}</td><td style="font-size:12px;color:var(--muted);">${escapeHtml(p.rejection_reason || p.change_request_note || '-')}</td></tr>`).join('');
+      } catch (err) { tbody.innerHTML = `<tr><td colspan="6" class="empty-state">${escapeHtml(err.message)}</td></tr>`; }
+    }
+    (async () => { await loadWhoAmI('owner', 'ownerName'); document.getElementById('logoutLink').addEventListener('click', e => { e.preventDefault(); logoutAs('owner'); }); await loadProperties(); })();
+  </script>
+</body>
+</html>

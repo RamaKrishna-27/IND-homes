@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Activity Logs · IND Homes Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+      <div class="topbar">
+        <h2 id="topbar-title">Activity Logs</h2>
+        <div class="actions"><span id="notifBell"></span></div>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr><th>Date/Time</th><th>Admin</th><th>Action</th><th>Details</th></tr>
+          </thead>
+          <tbody id="logTableBody">
+            <tr><td colspan="4" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    renderLayout('activity.html', 'Activity Logs');
+    async function loadLogs() {
+      const tbody = document.getElementById('logTableBody');
+      try {
+        const { logs } = await api.get('/admin/activity-logs?limit=200');
+        if (!logs.length) {
+          tbody.innerHTML = `<tr><td colspan="4" class="empty-state">No activity recorded yet.</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = logs
+          .map(
+            (l) => `
+          <tr>
+            <td>${fmtDate(l.created_at)}</td>
+            <td>${escapeHtml(l.admin_email || '-')}</td>
+            <td>${escapeHtml(l.action)}</td>
+            <td>${escapeHtml(l.details || '-')}</td>
+          </tr>`
+          )
+          .join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="4" class="empty-state">${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+    loadLogs();
+  </script>
+</body>
+</html>

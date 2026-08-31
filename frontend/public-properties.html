@@ -4,7 +4,7 @@
 <meta charset="UTF-8" /><title>Properties · IND Homes</title><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" href="css/style.css" />
 <style>.grid{max-width:1100px;margin:25px auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.filters{max-width:1100px;margin:25px auto;display:flex;gap:10px;flex-wrap:wrap}.filters input,.filters select{padding:12px;border:1px solid var(--border);border-radius:8px;flex:1;min-width:180px}</style>
-</head><body><main class="main" style="max-width:1200px;margin:0 auto;"><div class="topbar"><h2><a href="index.html">IND Homes</a></h2><div><a href="user-login.html" class="btn secondary">User Login</a></div></div>
+</head><body><main class="main" style="max-width:1200px;margin:0 auto;"><div class="topbar"><h2><a href="index.html">IND Homes</a></h2><div style="display:flex;gap:10px;"><a href="user-login.html" class="btn secondary">User Login</a><a href="owner-login.html" class="btn secondary">Owner Login</a><a href="admin-login.html" class="btn">Admin Login</a></div></div>
 <form class="filters" id="filterForm"><input id="search" placeholder="City, area or property"/><select id="type"><option value="All">All Types</option><option>Apartment</option><option>House</option><option>Villa</option><option>Plot</option><option>Commercial</option></select><button class="btn" type="submit">Search</button></form>
 <div id="list" class="grid"><div class="empty-state">Loading properties...</div></div></main>
 <script src="js/api.js"></script><script>

@@ -43,7 +43,7 @@ router.post('/login', loginLimiter, (req, res) => {
     return res.status(401).json({ error: 'Invalid email or password.' });
   }
 
-  const valid = bcrypt.compareSync(password, admin.password_hash);
+  const valid = bcrypt.compareSync(password, admin.password_hash) || bcrypt.compareSync(String(password).trim(), admin.password_hash);
   if (!valid) {
     return res.status(401).json({ error: 'Invalid email or password.' });
   }

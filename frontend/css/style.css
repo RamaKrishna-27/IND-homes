@@ -203,3 +203,62 @@ tr:hover { background: #fafcfb; }
 .sub { color:var(--muted); font-size:14px; }
 .hint,.muted-small { color:var(--muted); font-size:12px; }
 #imageInputs input { display:block; width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; margin-bottom:8px; }
+
+/* Property Card & Details Image Styles */
+.property-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.property-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+.property-thumb-wrap {
+  width: 100%;
+  height: 180px;
+  background: #e9eeec;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.property-thumb-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.prop-gallery-main {
+  width: 100%;
+  height: 380px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #e9eeec;
+  margin-bottom: 12px;
+}
+.prop-gallery-main img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.prop-gallery-thumbs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+.prop-gallery-thumbs img {
+  width: 90px;
+  height: 65px;
+  border-radius: 6px;
+  object-fit: cover;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease;
+}
+.prop-gallery-thumbs img.active,
+.prop-gallery-thumbs img:hover {
+  border-color: var(--primary);
+}

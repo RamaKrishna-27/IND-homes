@@ -3,17 +3,31 @@ const bcrypt = require('bcryptjs');
 const db = require('./config/db');
 
 function upsertAdmin() {
-  const email = (process.env.ADMIN_EMAIL || 'ramakrishnapuvvala3@gmail.com').toLowerCase().trim();
-  const password = process.env.ADMIN_PASSWORD || 'prk@2007';
-  const hash = bcrypt.hashSync(password, 12);
+  const defaultAdmins = [
+    { email: 'harshavardhanmamidi89@gmail.com', password: 'prk@2007', name: 'Harshavardhan Mamidi' },
+    { email: 'ramakrishnapuvvala3@gmail.com', password: 'prk@2007', name: 'Rama Krishna' },
+    { email: 'admin@indhomes.com', password: 'prk@2007', name: 'Administrator' }
+  ];
 
-  const existing = db.prepare('SELECT * FROM admins WHERE email = ?').get(email);
-  if (existing) {
-    db.prepare('UPDATE admins SET password_hash = ?, name = ? WHERE id = ?').run(hash, 'Rama Krishna', existing.id);
-    console.log(`Admin account updated: ${email}`);
-  } else {
-    db.prepare('INSERT INTO admins (email, password_hash, name) VALUES (?, ?, ?)').run(email, hash, 'Rama Krishna');
-    console.log(`Created admin account: ${email} / ${password}`);
+  if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
+    defaultAdmins.unshift({
+      email: process.env.ADMIN_EMAIL.toLowerCase().trim(),
+      password: process.env.ADMIN_PASSWORD,
+      name: 'System Admin'
+    });
+  }
+
+  for (const admin of defaultAdmins) {
+    const normalizedEmail = admin.email.toLowerCase().trim();
+    const hash = bcrypt.hashSync(admin.password, 12);
+    const existing = db.prepare('SELECT * FROM admins WHERE email = ?').get(normalizedEmail);
+    if (existing) {
+      db.prepare('UPDATE admins SET password_hash = ?, name = ? WHERE id = ?').run(hash, admin.name, existing.id);
+      console.log(`Admin account verified/updated: ${normalizedEmail}`);
+    } else {
+      db.prepare('INSERT INTO admins (email, password_hash, name) VALUES (?, ?, ?)').run(normalizedEmail, hash, admin.name);
+      console.log(`Created admin account: ${normalizedEmail}`);
+    }
   }
 }
 
@@ -56,7 +70,7 @@ function seedSampleData() {
     'Apartment', '3 BHK', 3, 3, 2150, 68000, 136000, 4500, 'Fully-Furnished', '18', 36, '1 year',
     'Telangana', 'Hyderabad', 'HITEC City', '500081', 'Near Cyber Towers & Knowledge City', 17.4435, 78.3772,
     JSON.stringify(['Clubhouse', 'Swimming Pool', 'Gym', 'Covered Parking', 'Lift', '24/7 Security', 'Power Backup', 'EV Charging']),
-    JSON.stringify(['https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800', 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800']),
+    JSON.stringify(['images/properties/prop1_bhooja_1.jpg', 'images/properties/prop1_bhooja_2.jpg']),
     'APPROVED'
   );
 
@@ -67,7 +81,7 @@ function seedSampleData() {
     'Apartment', '2 BHK', 2, 2, 1150, 28000, 56000, 2500, 'Semi-Furnished', '4', 10, '2 years',
     'Telangana', 'Hyderabad', 'Kondapur', '500084', 'Near Botanical Garden', 17.4649, 78.3610,
     JSON.stringify(['Parking', 'Lift', 'Security', 'CCTV', 'Power Backup', 'Children Play Area']),
-    JSON.stringify(['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800']),
+    JSON.stringify(['images/properties/prop2_greenvalley_1.jpg']),
     'PENDING_APPROVAL'
   );
 
@@ -78,7 +92,7 @@ function seedSampleData() {
     'Apartment', '3 BHK', 3, 3, 1720, 48000, 96000, 3500, 'Semi-Furnished', '7', 15, '1 year',
     'Telangana', 'Hyderabad', 'Gachibowli', '500032', 'Near Financial District & Wipro Circle', 17.4399, 78.3489,
     JSON.stringify(['Swimming Pool', 'Gym', 'Clubhouse', 'Jogging Track', 'Tennis Court', 'Intercom', 'Power Backup']),
-    JSON.stringify(['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800']),
+    JSON.stringify(['images/properties/prop3_aparna_1.jpg', 'images/properties/prop3_aparna_2.jpg']),
     'APPROVED'
   );
 
@@ -89,7 +103,7 @@ function seedSampleData() {
     'Apartment', '1 BHK', 1, 1, 550, 14000, 28000, 1000, 'Unfurnished', '2', 5, '4 years',
     'Telangana', 'Hyderabad', 'Ameerpet', '500016', 'Behind Metro Station', 17.4374, 78.4487,
     JSON.stringify(['24/7 Water Supply', 'Bike Parking', 'CCTV']),
-    JSON.stringify(['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800']),
+    JSON.stringify(['images/properties/prop4_ameerpet_1.jpg']),
     'APPROVED'
   );
 
@@ -101,7 +115,7 @@ function seedSampleData() {
     'Apartment', '3 BHK', 3, 3, 1580, 52000, 150000, 4000, 'Fully-Furnished', '11', 28, '2 years',
     'Karnataka', 'Bengaluru', 'Kanakapura Road', '560062', 'Adjacent to Doddakallasandra Metro Station', 12.8876, 77.5518,
     JSON.stringify(['Clubhouse', 'Swimming Pool', 'Badminton Court', 'Squash Court', 'Multiplex', 'Gym', '24/7 Security']),
-    JSON.stringify(['https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800', 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800']),
+    JSON.stringify(['images/properties/prop5_prestige_1.jpg', 'images/properties/prop5_prestige_2.jpg']),
     'APPROVED'
   );
 
@@ -112,7 +126,7 @@ function seedSampleData() {
     'Apartment', '2 BHK', 2, 2, 1050, 36000, 100000, 3000, 'Semi-Furnished', '9', 14, '3 years',
     'Karnataka', 'Bengaluru', 'Whitefield', '560087', 'Near Panathur Main Road', 12.9382, 77.7126,
     JSON.stringify(['Gym', 'Swimming Pool', 'Covered Car Parking', 'Security', 'Rainwater Harvesting']),
-    JSON.stringify(['https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800']),
+    JSON.stringify(['images/properties/prop6_sobha_1.jpg']),
     'PENDING_APPROVAL'
   );
 
@@ -124,7 +138,7 @@ function seedSampleData() {
     'Apartment', '2 BHK', 2, 2, 1100, 125000, 350000, 8000, 'Fully-Furnished', '32', 75, '1 year',
     'Maharashtra', 'Mumbai', 'Worli', '400018', 'Near Bandra-Worli Sea Link', 19.0022, 72.8182,
     JSON.stringify(['Sea View', 'Private Park', 'Infinity Pool', 'Concierge Service', 'High-Speed Elevators', 'Valet Parking']),
-    JSON.stringify(['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800']),
+    JSON.stringify(['images/properties/prop7_lodha_1.jpg', 'images/properties/prop7_lodha_2.jpg']),
     'APPROVED'
   );
 
@@ -135,7 +149,7 @@ function seedSampleData() {
     'Apartment', '2 BHK', 2, 2, 980, 30000, 75000, 2200, 'Semi-Furnished', '14', 32, '2 years',
     'Maharashtra', 'Pune', 'Hadapsar', '411028', 'Inside Amanora Township', 18.5186, 73.9352,
     JSON.stringify(['Township Amenities', 'Gym', 'Swimming Pool', 'Security', 'Clubhouse', 'Children Play Area']),
-    JSON.stringify(['https://images.unsplash.com/photo-1574362848149-11496d93a7c7?w=800']),
+    JSON.stringify(['images/properties/prop8_amanora_1.jpg']),
     'APPROVED'
   );
 
@@ -147,7 +161,7 @@ function seedSampleData() {
     'Apartment', '3 BHK', 3, 3, 1420, 32000, 80000, 2800, 'Semi-Furnished', '8', 19, '3 years',
     'Tamil Nadu', 'Chennai', 'Navalur, OMR', '603103', 'Near Vivira Mall', 12.8465, 80.2285,
     JSON.stringify(['Clubhouse', 'Gym', 'Power Backup', 'Lift', 'Covered Parking', 'Security']),
-    JSON.stringify(['https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?w=800']),
+    JSON.stringify(['images/properties/prop9_olympia_1.jpg']),
     'APPROVED'
   );
 
@@ -159,7 +173,7 @@ function seedSampleData() {
     'Villa', '4 BHK', 4, 4, 3200, 75000, 200000, 5000, 'Fully-Furnished', 'Ground + 1', 2, 'New',
     'Andhra Pradesh', 'Visakhapatnam', 'Rushikonda', '530045', 'Near IT SEZ & Rushikonda Beach', 17.7818, 83.3855,
     JSON.stringify(['Private Garden', 'Sea View', 'Car Porch', 'Modular Kitchen', 'Solar Power Backup', 'CCTV Security']),
-    JSON.stringify(['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800', 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800']),
+    JSON.stringify(['images/properties/prop10_rushikonda_1.jpg', 'images/properties/prop10_rushikonda_2.jpg']),
     'APPROVED'
   );
 
@@ -170,7 +184,7 @@ function seedSampleData() {
     'Apartment', '3 BHK', 3, 3, 1600, 35000, 80000, 2500, 'Semi-Furnished', '5', 8, '2 years',
     'Andhra Pradesh', 'Vijayawada', 'Benz Circle', '520010', 'Near PVP Square Mall', 16.5012, 80.6437,
     JSON.stringify(['Lift', 'Covered Parking', '24/7 Generator Backup', 'Security Guard', 'Municipal Water']),
-    JSON.stringify(['https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800']),
+    JSON.stringify(['images/properties/prop11_capital_1.jpg']),
     'APPROVED'
   );
 
@@ -182,7 +196,7 @@ function seedSampleData() {
     'Apartment', '3 BHK', 3, 3, 2100, 58000, 120000, 4500, 'Semi-Furnished', '12', 29, '2 years',
     'Haryana', 'Gurgaon', 'Sector 81', '122004', 'Near Dwarka Expressway & NH-48', 28.3789, 76.9452,
     JSON.stringify(['Clubhouse', 'Olympic Size Pool', 'Gym', 'Tennis & Badminton Courts', '24/7 Security']),
-    JSON.stringify(['https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800']),
+    JSON.stringify(['images/properties/prop12_dlf_1.jpg', 'images/properties/prop12_dlf_2.jpg']),
     'APPROVED'
   );
 
@@ -194,7 +208,7 @@ function seedSampleData() {
     'Commercial', null, null, 2, 3500, 180000, 540000, 15000, 'Fully-Furnished', '3', 6, '5 years',
     'Telangana', 'Hyderabad', 'Madhapur', '500081', 'Near Image Hospitals', 17.4483, 78.3915,
     JSON.stringify(['Central AC', 'High-Speed Elevators', 'Cafeteria', 'Visitor Parking']),
-    JSON.stringify(['https://images.unsplash.com/photo-1497366216548-37526070297c?w=800']),
+    JSON.stringify(['images/properties/prop13_office_1.jpg']),
     'REJECTED'
   );
   db.prepare("UPDATE properties SET rejection_reason = ? WHERE id = ?").run(
@@ -239,7 +253,15 @@ function seedSampleData() {
   console.log('Sample data seeded: 4 owners, 3 users, 13 properties across India, 3 contact requests.');
 }
 
-upsertAdmin();
-seedSampleData();
-console.log('Seeding complete.');
+function runSeed() {
+  upsertAdmin();
+  seedSampleData();
+  console.log('IND Homes database verified and ready.');
+}
+
+if (require.main === module) {
+  runSeed();
+}
+
+module.exports = { runSeed, upsertAdmin, seedSampleData };
 

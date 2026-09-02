@@ -21,6 +21,14 @@ if (!process.env.JWT_SECRET || !process.env.RESET_TOKEN_SECRET) {
   console.warn('WARNING: JWT_SECRET / RESET_TOKEN_SECRET not set. Using fallback for session encryption.');
 }
 
+// Automatically ensure admin accounts and seed properties exist on boot
+try {
+  const { runSeed } = require('./seed');
+  runSeed();
+} catch (err) {
+  console.error('Database bootstrap warning:', err.message);
+}
+
 const app = express();
 
 app.use(

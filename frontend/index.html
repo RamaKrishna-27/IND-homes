@@ -52,11 +52,14 @@
         const rows = (data.properties || []).slice(0, 6);
         featured.innerHTML = rows.length ? rows.map(p => `
           <article class="card property-card">
-            <h3>${escapeHtml(p.title)}</h3>
+            <div class="property-thumb-wrap">
+              <img src="${escapeHtml((p.images && p.images[0]) || 'images/properties/placeholder.jpg')}" alt="${escapeHtml(p.title)}" onerror="this.src='images/properties/placeholder.jpg'" />
+            </div>
+            <h3 style="margin:0 0 6px;">${escapeHtml(p.title)}</h3>
             <div class="muted">${escapeHtml(p.city || '')}${p.area ? ', ' + escapeHtml(p.area) : ''}</div>
-            <p><strong>₹${Number(p.price || 0).toLocaleString('en-IN')}</strong></p>
-            <p class="muted">Owner: ${escapeHtml(p.owner.name)}</p>
-            <a class="btn secondary" href="property-details.html?id=${encodeURIComponent(p.id)}">View Property</a>
+            <p style="margin:8px 0;"><strong>₹${Number(p.price || 0).toLocaleString('en-IN')}</strong> / month</p>
+            <p class="muted" style="margin:0 0 12px;font-size:13px;">Owner: ${escapeHtml(p.owner.name)}</p>
+            <a class="btn secondary" style="margin-top:auto;" href="property-details.html?id=${encodeURIComponent(p.id)}">View Property</a>
           </article>`).join('') : '<div class="empty-state">No approved properties yet.</div>';
       } catch (e) { featured.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`; }
     }

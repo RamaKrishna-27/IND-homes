@@ -6,8 +6,8 @@ const router = express.Router();
 router.use(requireUser);
 
 // GET /api/user/requests - the logged-in user's own contact requests
-router.get('/', (req, res) => {
-  const rows = db
+router.get('/', async (req, res) => {
+  const rows = await db
     .prepare(
       `SELECT cr.id, cr.request_type, cr.status, cr.created_at, p.title as property_title, o.name as owner_name
        FROM contact_requests cr

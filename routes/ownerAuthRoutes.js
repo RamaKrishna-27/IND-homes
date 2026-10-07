@@ -30,7 +30,7 @@ function signOwner(owner) {
 }
 
 // POST /api/owner/auth/register
-router.post('/register', authLimiter, (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   const { name, email, password, mobile, ownerType } = req.body || {};
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Name, email, and password are required.' });
@@ -40,13 +40,13 @@ router.post('/register', authLimiter, (req, res) => {
   }
 
   const normalizedEmail = email.toLowerCase().trim();
-  const existing = db.prepare('SELECT id FROM owners WHERE email = ?').get(normalizedEmail);
+  const existing = await db.prepare('SELECT id FROM owners WHERE email = ?').get(normalizedEmail);
   if (existing) {
     return res.status(409).json({ error: 'An account with this email already exists.' });
   }
 
   const passwordHash = bcrypt.hashSync(password, 10);
-  const result = db
+  const result = await db
     .prepare('INSERT INTO owners (name, email, mobile, password_hash, owner_type) VALUES (?, ?, ?, ?, ?)')
     .run(name.trim(), normalizedEmail, mobile || null, passwordHash, ownerType || 'Individual');
 
@@ -54,7 +54,7 @@ router.post('/register', authLimiter, (req, res) => {
   const token = signOwner(owner);
   res.cookie('owner_token', token, COOKIE_OPTS);
 
-  notifyAdmin({
+  await notifyAdmin({
     type: 'NEW_OWNER_REGISTERED',
     title: 'New Owner Registered',
     message: `${owner.name} (${owner.email}) created an owner account.`,
@@ -65,14 +65,14 @@ router.post('/register', authLimiter, (req, res) => {
 });
 
 // POST /api/owner/auth/login
-router.post('/login', authLimiter, (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required.' });
   }
 
-  const owner = db.prepare('SELECT * FROM owners WHERE email = ?').get(email.toLowerCase().trim());
-  if (!owner || !bcrypt.compareSync(password, owner.password_hash)) {
+  const owner = await db.prepare('SELECT * FROM owners WHERE email = ?').get(email.toLowerCase().trim());
+  if (!owner || (!bcrypt.compareSync(password, owner.password_hash) && !bcrypt.compareSync(String(password).trim(), owner.password_hash))) {
     return res.status(401).json({ error: 'Invalid email or password.' });
   }
   if (owner.account_status !== 'ACTIVE') {
@@ -91,8 +91,8 @@ router.post('/logout', requireOwner, (req, res) => {
 });
 
 // GET /api/owner/auth/me
-router.get('/me', requireOwner, (req, res) => {
-  const owner = db
+router.get('/me', requireOwner, async (req, res) => {
+  const owner = await db
     .prepare('SELECT id, name, email, mobile, owner_type, verification_status, account_status, created_at FROM owners WHERE id = ?')
     .get(req.owner.id);
   if (!owner) return res.status(404).json({ error: 'Owner not found.' });

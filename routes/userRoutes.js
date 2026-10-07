@@ -7,7 +7,7 @@ const router = express.Router();
 router.use(requireAdmin);
 
 // GET /api/admin/users?search=...
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const { search } = req.query;
   let sql = `
     SELECT u.*,
@@ -20,48 +20,49 @@ router.get('/', (req, res) => {
     params.push(Number(search) || -1, `%${search}%`, `%${search}%`);
   }
   sql += ' ORDER BY u.created_at DESC';
-  res.json({ users: db.prepare(sql).all(...params) });
+  const rows = await db.prepare(sql).all(...params);
+  res.json({ users: rows || [] });
 });
 
-router.get('/:id', (req, res) => {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+router.get('/:id', async (req, res) => {
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
   if (!user) return res.status(404).json({ error: 'User not found.' });
   res.json({ user });
 });
 
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const { name, email, mobile, city } = req.body || {};
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
   if (!user) return res.status(404).json({ error: 'User not found.' });
 
-  db.prepare('UPDATE users SET name = COALESCE(?, name), email = COALESCE(?, email), mobile = COALESCE(?, mobile), city = COALESCE(?, city) WHERE id = ?')
+  await db.prepare('UPDATE users SET name = COALESCE(?, name), email = COALESCE(?, email), mobile = COALESCE(?, mobile), city = COALESCE(?, city) WHERE id = ?')
     .run(name, email, mobile, city, user.id);
 
-  logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'USER_EDITED', details: `Edited user #${user.id}` });
+  await logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'USER_EDITED', details: `Edited user #${user.id}` });
   res.json({ message: 'User updated.' });
 });
 
-router.post('/:id/suspend', (req, res) => {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+router.post('/:id/suspend', async (req, res) => {
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
   if (!user) return res.status(404).json({ error: 'User not found.' });
-  db.prepare(`UPDATE users SET account_status = 'SUSPENDED' WHERE id = ?`).run(user.id);
-  logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'USER_SUSPENDED', details: `Suspended user #${user.id}` });
+  await db.prepare(`UPDATE users SET account_status = 'SUSPENDED' WHERE id = ?`).run(user.id);
+  await logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'USER_SUSPENDED', details: `Suspended user #${user.id}` });
   res.json({ message: 'User suspended.' });
 });
 
-router.post('/:id/activate', (req, res) => {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+router.post('/:id/activate', async (req, res) => {
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
   if (!user) return res.status(404).json({ error: 'User not found.' });
-  db.prepare(`UPDATE users SET account_status = 'ACTIVE' WHERE id = ?`).run(user.id);
-  logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'USER_ACTIVATED', details: `Activated user #${user.id}` });
+  await db.prepare(`UPDATE users SET account_status = 'ACTIVE' WHERE id = ?`).run(user.id);
+  await logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'USER_ACTIVATED', details: `Activated user #${user.id}` });
   res.json({ message: 'User activated.' });
 });
 
-router.delete('/:id', (req, res) => {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+router.delete('/:id', async (req, res) => {
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
   if (!user) return res.status(404).json({ error: 'User not found.' });
-  db.prepare(`UPDATE users SET account_status = 'DELETED' WHERE id = ?`).run(user.id);
-  logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'USER_DELETED', details: `Deleted user #${user.id}` });
+  await db.prepare(`UPDATE users SET account_status = 'DELETED' WHERE id = ?`).run(user.id);
+  await logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'USER_DELETED', details: `Deleted user #${user.id}` });
   res.json({ message: 'User deleted.' });
 });
 

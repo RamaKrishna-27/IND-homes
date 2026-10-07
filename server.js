@@ -24,9 +24,11 @@ if (!process.env.JWT_SECRET || !process.env.RESET_TOKEN_SECRET) {
 // Automatically ensure admin accounts and seed properties exist on boot
 try {
   const { runSeed } = require('./seed');
-  runSeed();
+  runSeed().catch((err) => {
+    console.error('Database bootstrap warning:', err.message);
+  });
 } catch (err) {
-  console.error('Database bootstrap warning:', err.message);
+  console.error('Database bootstrap error:', err.message);
 }
 
 const app = express();

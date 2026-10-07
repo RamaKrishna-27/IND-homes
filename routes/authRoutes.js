@@ -32,13 +32,13 @@ const COOKIE_OPTS = {
 };
 
 // POST /api/admin/auth/login
-router.post('/login', loginLimiter, (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required.' });
   }
 
-  const admin = db.prepare('SELECT * FROM admins WHERE email = ?').get(email.toLowerCase().trim());
+  const admin = await db.prepare('SELECT * FROM admins WHERE email = ?').get(email.toLowerCase().trim());
   if (!admin) {
     return res.status(401).json({ error: 'Invalid email or password.' });
   }
@@ -55,7 +55,7 @@ router.post('/login', loginLimiter, (req, res) => {
   );
 
   res.cookie('admin_token', token, COOKIE_OPTS);
-  logActivity({ adminId: admin.id, adminEmail: admin.email, action: 'ADMIN_LOGIN', details: 'Admin logged in.' });
+  await logActivity({ adminId: admin.id, adminEmail: admin.email, action: 'ADMIN_LOGIN', details: 'Admin logged in.' });
 
   res.json({
     message: 'Login successful.',
@@ -65,9 +65,9 @@ router.post('/login', loginLimiter, (req, res) => {
 });
 
 // POST /api/admin/auth/logout
-router.post('/logout', requireAdmin, (req, res) => {
+router.post('/logout', requireAdmin, async (req, res) => {
   res.clearCookie('admin_token');
-  logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'ADMIN_LOGOUT' });
+  await logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'ADMIN_LOGOUT' });
   res.json({ message: 'Logged out.' });
 });
 
@@ -83,7 +83,7 @@ router.post('/forgot-password', resetLimiter, async (req, res) => {
 
   if (!email) return res.status(400).json({ error: 'Email is required.' });
 
-  const admin = db.prepare('SELECT * FROM admins WHERE email = ?').get(email.toLowerCase().trim());
+  const admin = await db.prepare('SELECT * FROM admins WHERE email = ?').get(email.toLowerCase().trim());
 
   // Always behave the same way whether or not the account exists, to prevent account enumeration.
   if (!admin) {
@@ -91,7 +91,7 @@ router.post('/forgot-password', resetLimiter, async (req, res) => {
   }
 
   const { rawToken, tokenHash, expiresAt } = generateResetToken();
-  db.prepare('UPDATE admins SET reset_token_hash = ?, reset_token_expires = ? WHERE id = ?').run(
+  await db.prepare('UPDATE admins SET reset_token_hash = ?, reset_token_expires = ? WHERE id = ?').run(
     tokenHash,
     expiresAt,
     admin.id
@@ -112,7 +112,7 @@ router.post('/forgot-password', resetLimiter, async (req, res) => {
 });
 
 // POST /api/admin/auth/reset-password
-router.post('/reset-password', resetLimiter, (req, res) => {
+router.post('/reset-password', resetLimiter, async (req, res) => {
   const { email, token, newPassword } = req.body || {};
   if (!email || !token || !newPassword) {
     return res.status(400).json({ error: 'Email, token, and new password are required.' });
@@ -121,12 +121,12 @@ router.post('/reset-password', resetLimiter, (req, res) => {
     return res.status(400).json({ error: 'Password must be at least 8 characters.' });
   }
 
-  const admin = db.prepare('SELECT * FROM admins WHERE email = ?').get(email.toLowerCase().trim());
+  const admin = await db.prepare('SELECT * FROM admins WHERE email = ?').get(email.toLowerCase().trim());
   if (!admin || !admin.reset_token_hash || !admin.reset_token_expires) {
     return res.status(400).json({ error: 'Invalid or expired reset link.' });
   }
 
-  if (Date.now() > admin.reset_token_expires) {
+  if (Date.now() > Number(admin.reset_token_expires)) {
     return res.status(400).json({ error: 'This reset link has expired. Please request a new one.' });
   }
 
@@ -136,17 +136,17 @@ router.post('/reset-password', resetLimiter, (req, res) => {
   }
 
   const newHash = bcrypt.hashSync(newPassword, 12);
-  db.prepare(
+  await db.prepare(
     'UPDATE admins SET password_hash = ?, reset_token_hash = NULL, reset_token_expires = NULL WHERE id = ?'
   ).run(newHash, admin.id);
 
-  logActivity({ adminId: admin.id, adminEmail: admin.email, action: 'PASSWORD_RESET', details: 'Password reset via email link.' });
+  await logActivity({ adminId: admin.id, adminEmail: admin.email, action: 'PASSWORD_RESET', details: 'Password reset via email link.' });
 
   res.json({ message: 'Password successfully changed. You can now log in.' });
 });
 
 // POST /api/admin/auth/change-password (requires current password, must be logged in)
-router.post('/change-password', requireAdmin, (req, res) => {
+router.post('/change-password', requireAdmin, async (req, res) => {
   const { currentPassword, newPassword, confirmNewPassword } = req.body || {};
   if (!currentPassword || !newPassword || !confirmNewPassword) {
     return res.status(400).json({ error: 'All fields are required.' });
@@ -158,15 +158,15 @@ router.post('/change-password', requireAdmin, (req, res) => {
     return res.status(400).json({ error: 'Password must be at least 8 characters.' });
   }
 
-  const admin = db.prepare('SELECT * FROM admins WHERE id = ?').get(req.admin.id);
+  const admin = await db.prepare('SELECT * FROM admins WHERE id = ?').get(req.admin.id);
   if (!bcrypt.compareSync(currentPassword, admin.password_hash)) {
     return res.status(401).json({ error: 'Current password is incorrect.' });
   }
 
   const newHash = bcrypt.hashSync(newPassword, 12);
-  db.prepare('UPDATE admins SET password_hash = ? WHERE id = ?').run(newHash, admin.id);
+  await db.prepare('UPDATE admins SET password_hash = ? WHERE id = ?').run(newHash, admin.id);
 
-  logActivity({ adminId: admin.id, adminEmail: admin.email, action: 'PASSWORD_CHANGE', details: 'Password changed from settings.' });
+  await logActivity({ adminId: admin.id, adminEmail: admin.email, action: 'PASSWORD_CHANGE', details: 'Password changed from settings.' });
 
   res.json({ message: 'Password changed successfully.' });
 });

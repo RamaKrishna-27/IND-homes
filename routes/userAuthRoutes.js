@@ -29,7 +29,7 @@ function signUser(user) {
 }
 
 // POST /api/user/auth/register
-router.post('/register', authLimiter, (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   const { name, email, password, mobile, city } = req.body || {};
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Name, email, and password are required.' });
@@ -39,13 +39,13 @@ router.post('/register', authLimiter, (req, res) => {
   }
 
   const normalizedEmail = email.toLowerCase().trim();
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(normalizedEmail);
+  const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(normalizedEmail);
   if (existing) {
     return res.status(409).json({ error: 'An account with this email already exists.' });
   }
 
   const passwordHash = bcrypt.hashSync(password, 10);
-  const result = db
+  const result = await db
     .prepare('INSERT INTO users (name, email, mobile, city, password_hash) VALUES (?, ?, ?, ?, ?)')
     .run(name.trim(), normalizedEmail, mobile || null, city || null, passwordHash);
 
@@ -57,14 +57,14 @@ router.post('/register', authLimiter, (req, res) => {
 });
 
 // POST /api/user/auth/login
-router.post('/login', authLimiter, (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required.' });
   }
 
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim());
-  if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+  const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim());
+  if (!user || (!bcrypt.compareSync(password, user.password_hash) && !bcrypt.compareSync(String(password).trim(), user.password_hash))) {
     return res.status(401).json({ error: 'Invalid email or password.' });
   }
   if (user.account_status !== 'ACTIVE') {
@@ -83,8 +83,8 @@ router.post('/logout', requireUser, (req, res) => {
 });
 
 // GET /api/user/auth/me
-router.get('/me', requireUser, (req, res) => {
-  const user = db
+router.get('/me', requireUser, async (req, res) => {
+  const user = await db
     .prepare('SELECT id, name, email, mobile, city, account_status, created_at FROM users WHERE id = ?')
     .get(req.user.id);
   if (!user) return res.status(404).json({ error: 'User not found.' });

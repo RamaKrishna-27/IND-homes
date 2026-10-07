@@ -9,7 +9,7 @@ router.use(optionalUser);
 // GET /api/properties
 // Anonymous visitors receive owner name only.
 // Logged-in users also receive owner mobile + email.
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const { city, type, search } = req.query;
   let sql = `
     SELECT p.*, o.name AS owner_name
@@ -35,10 +35,10 @@ router.get('/', (req, res) => {
 
   sql += ' ORDER BY p.created_at DESC';
 
-  const rows = db.prepare(sql).all(...params);
+  const rows = await db.prepare(sql).all(...params);
   res.json({
     authenticated: Boolean(req.user),
-    properties: rows.map((p) => {
+    properties: (rows || []).map((p) => {
       const property = serializePublicPropertyBase(p);
       if (req.user) {
         property.owner.email = p.owner_email;
@@ -50,8 +50,8 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/properties/:id
-router.get('/:id', (req, res) => {
-  const p = db.prepare(`
+router.get('/:id', async (req, res) => {
+  const p = await db.prepare(`
     SELECT p.*, o.name AS owner_name
       ${req.user ? ', o.email AS owner_email, o.mobile AS owner_mobile' : ''}
     FROM properties p

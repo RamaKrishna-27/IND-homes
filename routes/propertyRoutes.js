@@ -15,7 +15,7 @@ function serializeProperty(p) {
 }
 
 // GET /api/admin/properties?status=PENDING_APPROVAL&search=...
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const { status, search } = req.query;
   let sql = `
     SELECT p.*, o.name as owner_name, o.email as owner_email, o.mobile as owner_mobile
@@ -35,13 +35,13 @@ router.get('/', (req, res) => {
   }
   sql += ' ORDER BY p.created_at DESC';
 
-  const rows = db.prepare(sql).all(...params);
+  const rows = await db.prepare(sql).all(...params);
   res.json({ properties: rows.map(serializeProperty) });
 });
 
 // GET /api/admin/properties/:id  (full detail view, includes owner info)
-router.get('/:id', (req, res) => {
-  const p = db
+router.get('/:id', async (req, res) => {
+  const p = await db
     .prepare(
       `SELECT p.*, o.name as owner_name, o.email as owner_email, o.mobile as owner_mobile,
               o.owner_type, o.verification_status, o.created_at as owner_created_at
@@ -51,21 +51,22 @@ router.get('/:id', (req, res) => {
 
   if (!p) return res.status(404).json({ error: 'Property not found.' });
 
-  const previousPropertiesCount = db
-    .prepare('SELECT COUNT(*) c FROM properties WHERE owner_id = ? AND id != ?')
-    .get(p.owner_id, p.id).c;
+  const prevRow = await db
+    .prepare('SELECT COUNT(*) as c FROM properties WHERE owner_id = ? AND id != ?')
+    .get(p.owner_id, p.id);
+  const previousPropertiesCount = Number(prevRow?.c || 0);
 
   res.json({ property: { ...serializeProperty(p), owner_previous_properties: previousPropertiesCount } });
 });
 
 // POST /api/admin/properties/:id/approve
-router.post('/:id/approve', (req, res) => {
-  const p = db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
+router.post('/:id/approve', async (req, res) => {
+  const p = await db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Property not found.' });
 
-  db.prepare(`UPDATE properties SET status = 'APPROVED', reviewed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(p.id);
+  await db.prepare(`UPDATE properties SET status = 'APPROVED', reviewed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(p.id);
 
-  notifyOwner({
+  await notifyOwner({
     ownerId: p.owner_id,
     type: 'PROPERTY_APPROVED',
     title: 'Property Approved',
@@ -73,7 +74,7 @@ router.post('/:id/approve', (req, res) => {
     link: `/properties/${p.id}`
   });
 
-  logActivity({
+  await logActivity({
     adminId: req.admin.id,
     adminEmail: req.admin.email,
     action: 'PROPERTY_APPROVED',
@@ -84,20 +85,20 @@ router.post('/:id/approve', (req, res) => {
 });
 
 // POST /api/admin/properties/:id/reject   body: { reason }
-router.post('/:id/reject', (req, res) => {
+router.post('/:id/reject', async (req, res) => {
   const { reason } = req.body || {};
   if (!reason || !reason.trim()) {
     return res.status(400).json({ error: 'A rejection reason is required.' });
   }
 
-  const p = db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
+  const p = await db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Property not found.' });
 
-  db.prepare(
+  await db.prepare(
     `UPDATE properties SET status = 'REJECTED', rejection_reason = ?, reviewed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
   ).run(reason, p.id);
 
-  notifyOwner({
+  await notifyOwner({
     ownerId: p.owner_id,
     type: 'PROPERTY_REJECTED',
     title: 'Property Rejected',
@@ -105,7 +106,7 @@ router.post('/:id/reject', (req, res) => {
     link: `/properties/${p.id}`
   });
 
-  logActivity({
+  await logActivity({
     adminId: req.admin.id,
     adminEmail: req.admin.email,
     action: 'PROPERTY_REJECTED',
@@ -116,20 +117,20 @@ router.post('/:id/reject', (req, res) => {
 });
 
 // POST /api/admin/properties/:id/request-changes   body: { note }
-router.post('/:id/request-changes', (req, res) => {
+router.post('/:id/request-changes', async (req, res) => {
   const { note } = req.body || {};
   if (!note || !note.trim()) {
     return res.status(400).json({ error: 'Please describe what needs to be corrected.' });
   }
 
-  const p = db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
+  const p = await db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Property not found.' });
 
-  db.prepare(
+  await db.prepare(
     `UPDATE properties SET status = 'CHANGES_REQUESTED', change_request_note = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
   ).run(note, p.id);
 
-  notifyOwner({
+  await notifyOwner({
     ownerId: p.owner_id,
     type: 'CHANGES_REQUESTED',
     title: 'Changes Requested',
@@ -137,7 +138,7 @@ router.post('/:id/request-changes', (req, res) => {
     link: `/properties/${p.id}/edit`
   });
 
-  logActivity({
+  await logActivity({
     adminId: req.admin.id,
     adminEmail: req.admin.email,
     action: 'CHANGES_REQUESTED',
@@ -148,40 +149,40 @@ router.post('/:id/request-changes', (req, res) => {
 });
 
 // POST /api/admin/properties/:id/suspend
-router.post('/:id/suspend', (req, res) => {
-  const p = db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
+router.post('/:id/suspend', async (req, res) => {
+  const p = await db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Property not found.' });
 
-  db.prepare(`UPDATE properties SET status = 'SUSPENDED', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(p.id);
+  await db.prepare(`UPDATE properties SET status = 'SUSPENDED', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(p.id);
 
-  notifyOwner({
+  await notifyOwner({
     ownerId: p.owner_id,
     type: 'PROPERTY_SUSPENDED',
     title: 'Property Suspended',
     message: `Your property "${p.title}" has been suspended by the platform.`,
   });
 
-  logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'PROPERTY_SUSPENDED', details: `Suspended property #${p.id}` });
+  await logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'PROPERTY_SUSPENDED', details: `Suspended property #${p.id}` });
   res.json({ message: 'Property suspended.' });
 });
 
 // POST /api/admin/properties/:id/restore
-router.post('/:id/restore', (req, res) => {
-  const p = db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
+router.post('/:id/restore', async (req, res) => {
+  const p = await db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Property not found.' });
 
-  db.prepare(`UPDATE properties SET status = 'APPROVED', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(p.id);
-  logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'PROPERTY_RESTORED', details: `Restored property #${p.id}` });
+  await db.prepare(`UPDATE properties SET status = 'APPROVED', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(p.id);
+  await logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'PROPERTY_RESTORED', details: `Restored property #${p.id}` });
   res.json({ message: 'Property restored and approved.' });
 });
 
 // DELETE /api/admin/properties/:id
-router.delete('/:id', (req, res) => {
-  const p = db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
+router.delete('/:id', async (req, res) => {
+  const p = await db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Property not found.' });
 
-  db.prepare(`UPDATE properties SET status = 'DELETED', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(p.id);
-  logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'PROPERTY_DELETED', details: `Deleted property #${p.id} (${p.title})` });
+  await db.prepare(`UPDATE properties SET status = 'DELETED', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(p.id);
+  await logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'PROPERTY_DELETED', details: `Deleted property #${p.id} (${p.title})` });
   res.json({ message: 'Property deleted.' });
 });
 

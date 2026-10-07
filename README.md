@@ -28,9 +28,21 @@ npm start
 This will automatically seed the default admin account + sample data on first run and start the server on `http://localhost:5000`.
 
 - Public Portal: `http://localhost:5000/`
-- Admin Login: `http://localhost:5000/admin-login.html` (Email: `ramakrishnapuvvala3@gmail.com`, Password: `prk@2007`)
+- Admin Login: `http://localhost:5000/admin-login.html` (Email: `harshavardhanmamidi89@gmail.com` or `ramakrishnapuvvala3@gmail.com`, Password: `prk@2007`)
 - Owner Portal: `http://localhost:5000/owner-login.html`
 - User Portal: `http://localhost:5000/user-login.html`
+
+## Connecting Supabase Cloud Database
+
+1. Sign in to **[Supabase](https://supabase.com)** using your **GitHub account**.
+2. Click **"New Project"** (e.g. Name: `ind-homes`, choose your region, set a secure database password).
+3. Go to **Project Settings** (gear icon) -> **Database** -> **Connection String** -> **URI**.
+4. Copy the connection string URI:
+   ```text
+   postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
+   ```
+5. Set `DATABASE_URL` in your `.env` file (locally) or in **Render Environment Variables**.
+6. The app will automatically connect to Supabase, create all tables, and seed the initial admin and Indian property data!
 
 ## Deploying on Render
 
@@ -39,11 +51,10 @@ This will automatically seed the default admin account + sample data on first ru
    - **Environment**: Node
    - **Build Command**: `npm install`
    - **Start Command**: `npm start`
-3. (Optional) Set Environment Variables:
+3. Set Environment Variables:
+   - `DATABASE_URL`: Your Supabase connection string URI (from Supabase Project Settings -> Database)
    - `JWT_SECRET`: A long random string
    - `RESET_TOKEN_SECRET`: A long random string
-   - `ADMIN_EMAIL`: Your preferred admin email
-   - `ADMIN_PASSWORD`: Your preferred initial admin password
 
 ## 2. Frontend setup
 

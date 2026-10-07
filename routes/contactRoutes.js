@@ -7,7 +7,7 @@ const router = express.Router();
 router.use(requireAdmin);
 
 // GET /api/admin/contact-requests?status=&type=
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const { status, type } = req.query;
   let sql = `
     SELECT cr.*, u.name as user_name, p.title as property_title, o.name as owner_name
@@ -28,11 +28,12 @@ router.get('/', (req, res) => {
   }
   sql += ' ORDER BY cr.created_at DESC';
 
-  res.json({ requests: db.prepare(sql).all(...params) });
+  const rows = await db.prepare(sql).all(...params);
+  res.json({ requests: rows || [] });
 });
 
-router.get('/:id', (req, res) => {
-  const cr = db
+router.get('/:id', async (req, res) => {
+  const cr = await db
     .prepare(
       `SELECT cr.*, u.name as user_name, u.email as user_email, u.mobile as user_mobile,
               p.title as property_title, o.name as owner_name, o.email as owner_email, o.mobile as owner_mobile
@@ -48,18 +49,18 @@ router.get('/:id', (req, res) => {
 });
 
 // POST /api/admin/contact-requests/:id/status  body: { status }
-router.post('/:id/status', (req, res) => {
+router.post('/:id/status', async (req, res) => {
   const { status } = req.body || {};
   const allowed = ['PENDING', 'CONTACTED', 'RESPONDED', 'CLOSED', 'CANCELLED'];
   if (!allowed.includes(status)) {
     return res.status(400).json({ error: `Status must be one of: ${allowed.join(', ')}` });
   }
 
-  const cr = db.prepare('SELECT * FROM contact_requests WHERE id = ?').get(req.params.id);
+  const cr = await db.prepare('SELECT * FROM contact_requests WHERE id = ?').get(req.params.id);
   if (!cr) return res.status(404).json({ error: 'Request not found.' });
 
-  db.prepare('UPDATE contact_requests SET status = ? WHERE id = ?').run(status, cr.id);
-  logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'CONTACT_REQUEST_STATUS_UPDATED', details: `Request #${cr.id} -> ${status}` });
+  await db.prepare('UPDATE contact_requests SET status = ? WHERE id = ?').run(status, cr.id);
+  await logActivity({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'CONTACT_REQUEST_STATUS_UPDATED', details: `Request #${cr.id} -> ${status}` });
   res.json({ message: 'Status updated.' });
 });
 

@@ -1,4 +1,4 @@
-﻿-- IND Homes - Supabase (PostgreSQL) Database Schema
+-- IND Homes - Supabase (PostgreSQL) Database Schema
 
 -- Admins Table
 CREATE TABLE IF NOT EXISTS admins (

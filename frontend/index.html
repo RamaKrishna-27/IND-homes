@@ -40,35 +40,96 @@
 
     <section class="section">
       <div class="topbar"><h2>Featured Properties</h2><a href="public-properties.html">View all</a></div>
-      <div id="featured" class="cards"><div class="empty-state">Loading properties...</div></div>
+      <div id="featured" class="cards">
+        <div class="loading-box">
+          <div class="spinner"></div>
+          <p style="color:var(--muted);font-weight:500;margin:0;">Loading featured properties...</p>
+        </div>
+      </div>
     </section>
   </main>
   <script src="js/api.js"></script>
   <script>
     const featured = document.getElementById('featured');
+    const userToken = localStorage.getItem('user_token');
+    const userLoginLink = document.getElementById('userLoginLink');
+    if (userToken && userLoginLink) {
+      userLoginLink.textContent = 'My Account';
+      userLoginLink.href = 'user-dashboard.html';
+    }
+
+    function renderLoading() {
+      featured.innerHTML = `
+        <div class="loading-box">
+          <div class="spinner"></div>
+          <p style="color:var(--muted);font-weight:500;margin:0;">Loading featured properties...</p>
+        </div>
+      `;
+    }
+
+    function renderEmpty() {
+      featured.innerHTML = `
+        <div class="state-box">
+          <h4>No Approved Properties Yet</h4>
+          <p>We are currently updating our listings. Check back soon or list your own property today.</p>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <a href="owner-login.html" class="btn">List Your Property</a>
+            <a href="public-properties.html" class="btn secondary">Browse Directory</a>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderError(errorMessage) {
+      featured.innerHTML = `
+        <div class="state-box error">
+          <h4 style="color:var(--danger);">Unable to Load Properties</h4>
+          <p>${escapeHtml(errorMessage || 'Failed to connect to the server. If this is a cold start, it may take a few seconds to wake up.')}</p>
+          <button class="btn" type="button" onclick="loadFeatured()">
+            &#x21bb; Try Again
+          </button>
+        </div>
+      `;
+    }
+
+    function renderProperties(rows) {
+      featured.innerHTML = rows.map(p => `
+        <article class="card property-card">
+          <div class="property-thumb-wrap">
+            <img src="${escapeHtml((p.images && p.images[0]) || 'images/properties/placeholder.jpg')}" alt="${escapeHtml(p.title || 'Property')}" onerror="this.src='images/properties/placeholder.jpg'" />
+          </div>
+          <h3 style="margin:0 0 6px;">${escapeHtml(p.title || 'Untitled Property')}</h3>
+          <div class="muted">${escapeHtml(p.city || '')}${p.area ? ', ' + escapeHtml(p.area) : ''}</div>
+          <p style="margin:8px 0;"><strong>₹${Number(p.price || 0).toLocaleString('en-IN')}</strong> / month</p>
+          <p class="muted" style="margin:0 0 12px;font-size:13px;">Owner: ${escapeHtml((p.owner && p.owner.name) || 'Verified Owner')}</p>
+          <a class="btn secondary" style="margin-top:auto;" href="property-details.html?id=${encodeURIComponent(p.id)}">View Property</a>
+        </article>
+      `).join('');
+    }
+
     async function loadFeatured() {
+      renderLoading();
       try {
         const data = await api.get('/properties');
         const rows = (data.properties || []).slice(0, 6);
-        featured.innerHTML = rows.length ? rows.map(p => `
-          <article class="card property-card">
-            <div class="property-thumb-wrap">
-              <img src="${escapeHtml((p.images && p.images[0]) || 'images/properties/placeholder.jpg')}" alt="${escapeHtml(p.title)}" onerror="this.src='images/properties/placeholder.jpg'" />
-            </div>
-            <h3 style="margin:0 0 6px;">${escapeHtml(p.title)}</h3>
-            <div class="muted">${escapeHtml(p.city || '')}${p.area ? ', ' + escapeHtml(p.area) : ''}</div>
-            <p style="margin:8px 0;"><strong>₹${Number(p.price || 0).toLocaleString('en-IN')}</strong> / month</p>
-            <p class="muted" style="margin:0 0 12px;font-size:13px;">Owner: ${escapeHtml(p.owner.name)}</p>
-            <a class="btn secondary" style="margin-top:auto;" href="property-details.html?id=${encodeURIComponent(p.id)}">View Property</a>
-          </article>`).join('') : '<div class="empty-state">No approved properties yet.</div>';
-      } catch (e) { featured.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`; }
+        if (rows.length === 0) {
+          renderEmpty();
+        } else {
+          renderProperties(rows);
+        }
+      } catch (err) {
+        console.error('Featured properties load failure:', err);
+        renderError(err.message);
+      }
     }
+
     document.getElementById('searchForm').addEventListener('submit', e => {
       e.preventDefault();
       const q = encodeURIComponent(document.getElementById('searchInput').value.trim());
       const type = encodeURIComponent(document.getElementById('typeInput').value);
       window.location.href = `public-properties.html?search=${q}&type=${type}`;
     });
+
     loadFeatured();
   </script>
 </body>

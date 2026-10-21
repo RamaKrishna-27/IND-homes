@@ -1,14 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" /><title>Properties · IND Homes</title><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="stylesheet" href="css/style.css" />
-<style>.grid{max-width:1100px;margin:25px auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.filters{max-width:1100px;margin:25px auto;display:flex;gap:10px;flex-wrap:wrap}.filters input,.filters select{padding:12px;border:1px solid var(--border);border-radius:8px;flex:1;min-width:180px}</style>
-</head><body><main class="main" style="max-width:1200px;margin:0 auto;"><div class="topbar"><h2><a href="index.html">IND Homes</a></h2><div style="display:flex;gap:10px;"><a href="user-login.html" class="btn secondary">User Login</a><a href="owner-login.html" class="btn secondary">Owner Login</a><a href="admin-login.html" class="btn">Admin Login</a></div></div>
-<form class="filters" id="filterForm"><input id="search" placeholder="City, area or property"/><select id="type"><option value="All">All Types</option><option>Apartment</option><option>House</option><option>Villa</option><option>Plot</option><option>Commercial</option></select><button class="btn" type="submit">Search</button></form>
-<div id="list" class="grid"><div class="empty-state">Loading properties...</div></div></main>
-<script src="js/api.js"></script><script>
-const params=new URLSearchParams(location.search); document.getElementById('search').value=params.get('search')||''; document.getElementById('type').value=params.get('type')||'All';
-async function load(){const qs=new URLSearchParams();const s=document.getElementById('search').value.trim(),t=document.getElementById('type').value;if(s)qs.set('search',s);if(t)qs.set('type',t);try{const d=await api.get('/properties?'+qs.toString());document.getElementById('list').innerHTML=(d.properties||[]).map(p=>`<article class="card property-card"><div class="property-thumb-wrap"><img src="${escapeHtml((p.images&&p.images[0])||'images/properties/placeholder.jpg')}" alt="${escapeHtml(p.title)}" onerror="this.src='images/properties/placeholder.jpg'"/></div><h3 style="margin:0 0 6px;">${escapeHtml(p.title)}</h3><p class="muted" style="margin:0 0 6px;">${escapeHtml(p.city||'')}${p.area?', '+escapeHtml(p.area):''}</p><p style="margin:6px 0;"><strong>₹${Number(p.price||0).toLocaleString('en-IN')}</strong> / month</p><p class="muted" style="margin:0 0 12px;font-size:13px;">Owner: ${escapeHtml(p.owner.name)}</p><a class="btn secondary" style="margin-top:auto;" href="property-details.html?id=${encodeURIComponent(p.id)}">View Property</a></article>`).join('')||'<div class="empty-state">No approved properties found.</div>'}catch(e){document.getElementById('list').innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`}}
-document.getElementById('filterForm').addEventListener('submit',e=>{e.preventDefault();history.replaceState({},'',`public-properties.html?search=${encodeURIComponent(document.getElementById('search').value.trim())}&type=${encodeURIComponent(document.getElementById('type').value)}`);load()});load();
-</script></body></html>
+  <meta charset="UTF-8" />
+  <title>Properties · IND Homes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .grid {
+      max-width: 1100px;
+      margin: 25px auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .filters {
+      max-width: 1100px;
+      margin: 25px auto;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .filters input, .filters select {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      flex: 1;
+      min-width: 180px;
+    }
+  </style>
+</head>
+<body>
+  <main class="main" style="max-width:1200px;margin:0 auto;">
+    <div class="topbar">
+      <h2><a href="index.html">IND Homes</a></h2>
+      <div style="display:flex;gap:10px;">
+        <a href="user-login.html" class="btn secondary" id="userNavBtn">User Login</a>
+        <a href="owner-login.html" class="btn secondary">Owner Login</a>
+        <a href="admin-login.html" class="btn">Admin Login</a>
+      </div>
+    </div>
+
+    <form class="filters" id="filterForm">
+      <input id="search" placeholder="City, area or property" />
+      <select id="type">
+        <option value="All">All Types</option>
+        <option value="Apartment">Apartment</option>
+        <option value="House">House</option>
+        <option value="Villa">Villa</option>
+        <option value="Plot">Plot</option>
+        <option value="Commercial">Commercial</option>
+      </select>
+      <button class="btn" type="submit">Search</button>
+    </form>
+
+    <div id="list" class="grid">
+      <div class="loading-box">
+        <div class="spinner"></div>
+        <p style="color:var(--muted);font-weight:500;margin:0;">Loading properties...</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script>
+    const listEl = document.getElementById('list');
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById('search').value = params.get('search') || '';
+    document.getElementById('type').value = params.get('type') || 'All';
+
+    const userToken = localStorage.getItem('user_token');
+    const userNavBtn = document.getElementById('userNavBtn');
+    if (userToken && userNavBtn) {
+      userNavBtn.textContent = 'My Account';
+      userNavBtn.href = 'user-dashboard.html';
+    }
+
+    function renderLoading() {
+      listEl.innerHTML = `
+        <div class="loading-box">
+          <div class="spinner"></div>
+          <p style="color:var(--muted);font-weight:500;margin:0;">Searching properties...</p>
+        </div>
+      `;
+    }
+
+    function renderEmpty() {
+      listEl.innerHTML = `
+        <div class="state-box">
+          <h4>No Properties Found</h4>
+          <p>We couldn't find any approved properties matching your search criteria. Try modifying your filters or search keywords.</p>
+          <button class="btn secondary" type="button" onclick="clearFilters()">Reset Filters</button>
+        </div>
+      `;
+    }
+
+    function renderError(errorMessage) {
+      listEl.innerHTML = `
+        <div class="state-box error">
+          <h4 style="color:var(--danger);">Error Loading Properties</h4>
+          <p>${escapeHtml(errorMessage || 'Failed to fetch property listings. Please check your connection.')}</p>
+          <button class="btn" type="button" onclick="load()">&#x21bb; Try Again</button>
+        </div>
+      `;
+    }
+
+    function renderProperties(rows) {
+      listEl.innerHTML = rows.map(p => `
+        <article class="card property-card">
+          <div class="property-thumb-wrap">
+            <img src="${escapeHtml((p.images && p.images[0]) || 'images/properties/placeholder.jpg')}" alt="${escapeHtml(p.title || 'Property')}" onerror="this.src='images/properties/placeholder.jpg'" />
+          </div>
+          <h3 style="margin:0 0 6px;">${escapeHtml(p.title || 'Untitled Property')}</h3>
+          <p class="muted" style="margin:0 0 6px;">${escapeHtml(p.city || '')}${p.area ? ', ' + escapeHtml(p.area) : ''}</p>
+          <p style="margin:6px 0;"><strong>₹${Number(p.price || 0).toLocaleString('en-IN')}</strong> / month</p>
+          <p class="muted" style="margin:0 0 12px;font-size:13px;">Owner: ${escapeHtml((p.owner && p.owner.name) || 'Verified Owner')}</p>
+          <a class="btn secondary" style="margin-top:auto;" href="property-details.html?id=${encodeURIComponent(p.id)}">View Property</a>
+        </article>
+      `).join('');
+    }
+
+    async function load() {
+      renderLoading();
+      const qs = new URLSearchParams();
+      const s = document.getElementById('search').value.trim();
+      const t = document.getElementById('type').value;
+      if (s) qs.set('search', s);
+      if (t && t !== 'All') qs.set('type', t);
+
+      try {
+        const d = await api.get('/properties?' + qs.toString());
+        const rows = d.properties || [];
+        if (rows.length === 0) {
+          renderEmpty();
+        } else {
+          renderProperties(rows);
+        }
+      } catch (err) {
+        console.error('Properties search error:', err);
+        renderError(err.message);
+      }
+    }
+
+    function clearFilters() {
+      document.getElementById('search').value = '';
+      document.getElementById('type').value = 'All';
+      history.replaceState({}, '', 'public-properties.html');
+      load();
+    }
+
+    document.getElementById('filterForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const s = document.getElementById('search').value.trim();
+      const t = document.getElementById('type').value;
+      const url = new URL(window.location.href);
+      if (s) url.searchParams.set('search', s); else url.searchParams.delete('search');
+      if (t && t !== 'All') url.searchParams.set('type', t); else url.searchParams.delete('type');
+      history.replaceState({}, '', url.toString());
+      load();
+    });
+
+    load();
+  </script>
+</body>
+</html>

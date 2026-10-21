@@ -19,13 +19,20 @@ if (connectionUrl) {
 
   const pool = new Pool({
     connectionString: connectionUrl,
-    ssl: connectionUrl.includes('localhost') ? false : { rejectUnauthorized: false }
+    ssl: connectionUrl.includes('localhost') ? false : { rejectUnauthorized: false },
+    connectionTimeoutMillis: 10000,
+    idleTimeoutMillis: 30000,
+    max: 10
+  });
+
+  pool.on('error', (err) => {
+    console.error('[PostgreSQL Pool Warning] Idle client connection issue:', err.message);
   });
 
   // Apply Supabase schema on startup
   const supabaseSchemaPath = path.join(__dirname, '..', 'supabase_schema.sql');
   if (fs.existsSync(supabaseSchemaPath)) {
-    const schema = fs.readFileSync(supabaseSchemaPath, 'utf8');
+    const schema = fs.readFileSync(supabaseSchemaPath, 'utf8').replace(/^\uFEFF/, '');
     pool.query(schema).then(() => {
       console.log('Supabase schema verified successfully.');
     }).catch((err) => {

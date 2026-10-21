@@ -1,25 +1,47 @@
 // Central place to configure the backend URL. Automatically uses relative '/api'
-// in production (e.g. Render) and supports standalone frontend servers on port 8080.
-const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port === '8080'
-  ? 'http://localhost:5000/api'
-  : '/api';
+// in production (e.g. Render) and connects to http://localhost:5000/api for local static servers.
+function getApiBase() {
+  if (typeof window !== 'undefined' && window.__API_BASE__) return window.__API_BASE__;
+  if (typeof window !== 'undefined' && window.location.protocol === 'file:') return 'http://localhost:5000/api';
+  const host = typeof window !== 'undefined' ? window.location.hostname : '';
+  const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
+  if (isLocal && window.location.port !== '5000') {
+    return 'http://localhost:5000/api';
+  }
+  return '/api';
+}
+const API_BASE = getApiBase();
 
-async function apiRequest(path, { method = 'GET', body } = {}) {
+async function apiRequest(path, { method = 'GET', body, timeoutMs = 25000 } = {}) {
   const headers = body ? { 'Content-Type': 'application/json' } : {};
 
   // Pick the right stored token based on which API this call is for, so the
-  // admin, owner, and user portals (which can be open in the same browser)
-  // don't stomp on each other's sessions.
+  // admin, owner, and user portals don't stomp on each other's sessions.
   const kind = path.startsWith('/admin/') ? 'admin' : path.startsWith('/owner/') ? 'owner' : path.startsWith('/user/') ? 'user' : null;
   const storedToken = kind ? localStorage.getItem(`${kind}_token`) : null;
   if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    credentials: 'include', // send the matching httpOnly cookie if present
-    headers,
-    body: body ? JSON.stringify(body) : undefined
-  });
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method,
+      credentials: 'include', // send the matching httpOnly cookie if present
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller ? controller.signal : undefined
+    });
+  } catch (err) {
+    if (timer) clearTimeout(timer);
+    if (err && err.name === 'AbortError') {
+      throw new Error('Connection timed out. The server might be warming up, please click Retry.');
+    }
+    throw new Error('Network error: Unable to reach IND Homes server. Please check connection and click Retry.');
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 
   let data = {};
   try {

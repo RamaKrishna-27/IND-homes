@@ -79,14 +79,20 @@ async function loadProperty() {
       <div class="modal-section">
         <h4>Owner Information</h4>
         <div class="kv">
-          <div><span class="k">Name:</span> ${escapeHtml(p.owner.name)}</div>
+          <div><span class="k">Name:</span> ${escapeHtml((p.owner && p.owner.name) || 'Verified Owner')}</div>
           ${ownerContact}
         </div>
         ${!authenticated ? '<p style="color:var(--muted);font-size:13px;margin-top:10px;">Owner contact details are available after user login.</p>' : ''}
       </div>
     `;
   } catch (err) {
-    propertyContainer.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
+    propertyContainer.innerHTML = `
+      <div class="state-box error" style="margin:20px 0;">
+        <h4 style="color:var(--danger);">Unable to Load Property</h4>
+        <p>${escapeHtml(err.message || 'Error retrieving property details.')}</p>
+        <button class="btn" type="button" onclick="loadProperty()">&#x21bb; Try Again</button>
+      </div>
+    `;
   }
 }
 

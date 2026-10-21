@@ -262,3 +262,54 @@ tr:hover { background: #fafcfb; }
 .prop-gallery-thumbs img:hover {
   border-color: var(--primary);
 }
+
+/* Loading spinner & interactive states */
+.loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  grid-column: 1 / -1;
+  text-align: center;
+  width: 100%;
+}
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3.5px solid rgba(28, 111, 92, 0.18);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: indSpin 0.85s linear infinite;
+  margin-bottom: 14px;
+}
+@keyframes indSpin {
+  to { transform: rotate(360deg); }
+}
+.state-box {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 44px 20px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 100%;
+}
+.state-box.error {
+  border-color: #f5c6cb;
+  background: #fffdfd;
+}
+.state-box h4 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: var(--text);
+}
+.state-box p {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0 0 16px;
+  max-width: 540px;
+  margin-left: auto;
+  margin-right: auto;
+}
+

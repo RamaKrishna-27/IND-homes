@@ -261,7 +261,20 @@ async function runSeed() {
 }
 
 if (require.main === module) {
-  runSeed().catch(console.error);
+  runSeed()
+    .then(async () => {
+      if (db.pool) {
+        try { await db.pool.end(); } catch (_) {}
+      }
+      process.exit(0);
+    })
+    .catch(async (err) => {
+      console.error(err);
+      if (db.pool) {
+        try { await db.pool.end(); } catch (_) {}
+      }
+      process.exit(1);
+    });
 }
 
 module.exports = { runSeed, upsertAdmin, seedSampleData };

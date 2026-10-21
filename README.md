@@ -34,27 +34,31 @@ This will automatically seed the default admin account + sample data on first ru
 
 ## Connecting Supabase Cloud Database
 
+IND Homes supports both the official **@supabase/supabase-js** client and direct **PostgreSQL connection pooling** (via `pg`).
+
 1. Sign in to **[Supabase](https://supabase.com)** using your **GitHub account**.
-2. Click **"New Project"** (e.g. Name: `ind-homes`, choose your region, set a secure database password).
-3. Go to **Project Settings** (gear icon) -> **Database** -> **Connection String** -> **URI**.
-4. Copy the connection string URI:
+2. Project Reference: `hryoiexamaruvujcmbmz` (Project URL: `https://hryoiexamaruvujcmbmz.supabase.co`).
+3. In Supabase Dashboard -> **Project Settings** -> **Database** -> **Connection String** -> **URI (Session/Transaction Pooler)**:
    ```text
-   postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
+   postgresql://postgres.hryoiexamaruvujcmbmz:[YOUR-PASSWORD]@aws-0-ap-south-1.pooler.supabase.com:6543/postgres
    ```
-5. Set `DATABASE_URL` in your `.env` file (locally) or in **Render Environment Variables**.
-6. The app will automatically connect to Supabase, create all tables, and seed the initial admin and Indian property data!
+4. Set `DATABASE_URL` in your `.env` file (locally) or in **Render Environment Variables**.
+5. (Optional) Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` to enable the `@supabase/supabase-js` client module (`config/supabase.js`).
+6. On startup, the app automatically connects to Supabase, verifies the schema (`supabase_schema.sql`), and seeds admin credentials and Indian property listings!
 
 ## Deploying on Render
 
-1. Connect your GitHub repository to Render as a **Web Service**.
-2. Settings:
+1. Connect your GitHub repository `https://github.com/RamaKrishna-27/IND-homes.git` to Render as a **Web Service**.
+2. Configure settings:
    - **Environment**: Node
    - **Build Command**: `npm install`
    - **Start Command**: `npm start`
-3. Set Environment Variables:
-   - `DATABASE_URL`: Your Supabase connection string URI (from Supabase Project Settings -> Database)
-   - `JWT_SECRET`: A long random string
-   - `RESET_TOKEN_SECRET`: A long random string
+3. Set the following **Environment Variables** in Render Dashboard:
+   - `DATABASE_URL`: `postgresql://postgres.hryoiexamaruvujcmbmz:eT45g%2FVFP%25m!HMp@aws-0-ap-south-1.pooler.supabase.com:6543/postgres`
+   - `SUPABASE_URL`: `https://hryoiexamaruvujcmbmz.supabase.co`
+   - `JWT_SECRET`: `indhomes_jwt_secret_render_production_key_2026`
+   - `RESET_TOKEN_SECRET`: `indhomes_reset_token_render_secret_key_2026`
+   - `NODE_ENV`: `production`
 
 ## 2. Frontend setup
 

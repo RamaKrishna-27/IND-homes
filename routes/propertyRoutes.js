@@ -6,11 +6,29 @@ const { logActivity, notifyOwner } = require('../utils/log');
 const router = express.Router();
 router.use(requireAdmin);
 
+function safeParseJson(value, fallback = []) {
+  if (!value) return fallback;
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'object') return value;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      if (value.includes(',')) {
+        return value.split(',').map((s) => s.trim()).filter(Boolean);
+      }
+      return [value];
+    }
+  }
+  return fallback;
+}
+
 function serializeProperty(p) {
   return {
     ...p,
-    amenities: p.amenities ? JSON.parse(p.amenities) : [],
-    images: p.images ? JSON.parse(p.images) : []
+    amenities: safeParseJson(p.amenities, []),
+    images: safeParseJson(p.images, ['images/properties/placeholder.jpg'])
   };
 }
 

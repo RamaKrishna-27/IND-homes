@@ -34,6 +34,45 @@ const requireAdmin = requireRole('admin', 'admin_token', 'admin');
 const requireOwner = requireRole('owner', 'owner_token', 'owner');
 const requireUser = requireRole('user', 'user_token', 'user');
 
+// Allows either owner or admin to access the route (e.g., image uploading)
+function requireOwnerOrAdmin(req, res, next) {
+  // Check admin
+  const adminToken =
+    (req.cookies && req.cookies.admin_token) ||
+    (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')
+      ? req.headers.authorization.slice(7)
+      : null);
+
+  if (adminToken) {
+    try {
+      const payload = jwt.verify(adminToken, JWT_SECRET);
+      if (payload.role === 'admin') {
+        req.admin = payload;
+        return next();
+      }
+    } catch (e) {}
+  }
+
+  // Check owner
+  const ownerToken =
+    (req.cookies && req.cookies.owner_token) ||
+    (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')
+      ? req.headers.authorization.slice(7)
+      : null);
+
+  if (ownerToken) {
+    try {
+      const payload = jwt.verify(ownerToken, JWT_SECRET);
+      if (payload.role === 'owner') {
+        req.owner = payload;
+        return next();
+      }
+    } catch (e) {}
+  }
+
+  return res.status(401).json({ error: 'Owner or admin login required.' });
+}
+
 // Optional user authentication. Unlike requireUser, this never rejects an
 // anonymous visitor; it only attaches req.user when a valid user session exists.
 // Used by public property endpoints so private owner contact fields are only
@@ -56,4 +95,4 @@ function optionalUser(req, res, next) {
   next();
 }
 
-module.exports = { requireAdmin, requireOwner, requireUser, optionalUser };
+module.exports = { requireAdmin, requireOwner, requireUser, requireOwnerOrAdmin, optionalUser };

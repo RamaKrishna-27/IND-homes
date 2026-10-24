@@ -59,6 +59,15 @@ IND Homes supports both the official **@supabase/supabase-js** client and direct
    - `JWT_SECRET`: `indhomes_jwt_secret_render_production_key_2026`
    - `RESET_TOKEN_SECRET`: `indhomes_reset_token_render_secret_key_2026`
    - `NODE_ENV`: `production`
+   - `SUPABASE_STORAGE_BUCKET`: `property-images` (Optional, defaults to `property-images`)
+
+## Property Image Upload Integration
+
+IND Homes includes a dual-backend image upload system:
+- **Cloud Storage (Supabase Storage)**: Uploads photos directly to the `property-images` bucket on Supabase and generates public CDN URLs.
+- **Local Disk Fallback**: For offline/local development without cloud storage configured, photos are automatically stored securely in `frontend/uploads/properties/` and served via `/uploads/properties/...`.
+- **Drag & Drop UI**: Owners can drop up to 12 photos (JPG, PNG, WEBP up to 10MB each), preview them live, set cover photo, remove photos individually, or paste external URLs.
+- **Endpoint**: `POST /api/upload/property-images` (Authorized for Owners & Admins via `multipart/form-data`).
 
 ## 2. Frontend setup
 

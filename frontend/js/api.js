@@ -13,12 +13,16 @@ function getApiBase() {
 const API_BASE = getApiBase();
 
 async function apiRequest(path, { method = 'GET', body, timeoutMs = 25000 } = {}) {
-  const headers = body ? { 'Content-Type': 'application/json' } : {};
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  const headers = body && !isFormData ? { 'Content-Type': 'application/json' } : {};
 
   // Pick the right stored token based on which API this call is for, so the
   // admin, owner, and user portals don't stomp on each other's sessions.
   const kind = path.startsWith('/admin/') ? 'admin' : path.startsWith('/owner/') ? 'owner' : path.startsWith('/user/') ? 'user' : null;
-  const storedToken = kind ? localStorage.getItem(`${kind}_token`) : null;
+  let storedToken = kind ? localStorage.getItem(`${kind}_token`) : null;
+  if (!storedToken && path.startsWith('/upload/')) {
+    storedToken = localStorage.getItem('owner_token') || localStorage.getItem('admin_token');
+  }
   if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
 
   const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -30,7 +34,7 @@ async function apiRequest(path, { method = 'GET', body, timeoutMs = 25000 } = {}
       method,
       credentials: 'include', // send the matching httpOnly cookie if present
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      body: isFormData ? body : (body ? JSON.stringify(body) : undefined),
       signal: controller ? controller.signal : undefined
     });
   } catch (err) {
@@ -65,7 +69,8 @@ const api = {
   get: (path) => apiRequest(path),
   post: (path, body) => apiRequest(path, { method: 'POST', body }),
   put: (path, body) => apiRequest(path, { method: 'PUT', body }),
-  del: (path) => apiRequest(path, { method: 'DELETE' })
+  del: (path) => apiRequest(path, { method: 'DELETE' }),
+  upload: (path, formData) => apiRequest(path, { method: 'POST', body: formData, timeoutMs: 60000 })
 };
 
 function fmtDate(d) {

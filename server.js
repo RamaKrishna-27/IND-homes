@@ -16,6 +16,7 @@ const userAuthRoutes = require('./routes/userAuthRoutes');
 const ownerPropertyRoutes = require('./routes/ownerPropertyRoutes');
 const userRequestRoutes = require('./routes/userRequestRoutes');
 const publicPropertyRoutes = require('./routes/publicPropertyRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 if (!process.env.JWT_SECRET || !process.env.RESET_TOKEN_SECRET) {
   console.warn('WARNING: JWT_SECRET / RESET_TOKEN_SECRET not set. Using fallback for session encryption.');
@@ -48,10 +49,14 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'frontend', 'index.
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
+// Explicit uploads serving
+app.use('/uploads', express.static(path.join(__dirname, 'frontend', 'uploads')));
+
 // Public property API. Anonymous visitors see owner name only;
 // authenticated users also receive owner email/mobile.
 app.use('/api/properties', publicPropertyRoutes);
 
+app.use('/api/upload', uploadRoutes);
 app.use('/api/admin/auth', authRoutes);
 app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/admin/properties', propertyRoutes);

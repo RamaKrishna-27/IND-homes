@@ -40,7 +40,33 @@
         </div>
         <div class="field"><label>Description *</label><textarea name="description" rows="5" required placeholder="Describe the property, nearby facilities, road access, etc."></textarea></div>
         <div class="field"><label>Amenities</label><input name="amenities" placeholder="Parking, Lift, Power Backup, Security" /></div>
-        <div class="field"><label>Property Images *</label><div id="imageInputs"><input name="imageUrl" type="url" required placeholder="https://example.com/property-photo-1.jpg" /></div><button type="button" class="btn secondary" id="addImage">+ Add another image</button><p class="hint">Add up to 12 public image URLs. Use direct image links (JPG, PNG, WEBP).</p></div>
+        <div class="field">
+          <label>Property Photos *</label>
+          <div id="storageStatusBadge" class="storage-tag" style="display:none;margin-bottom:10px;"></div>
+          
+          <!-- Dropzone -->
+          <div class="upload-dropzone" id="uploadDropzone">
+            <svg class="upload-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <h4>Click or drag & drop property photos here</h4>
+            <p>Upload photos directly from your device (JPG, PNG, WEBP, GIF up to 10MB each, max 12 photos)</p>
+            <span class="upload-btn-fake">Browse Photos</span>
+            <input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/webp,image/gif,image/avif" style="display:none;" />
+          </div>
+
+          <!-- Preview Grid -->
+          <div class="upload-previews" id="previewGrid"></div>
+
+          <!-- External URL Accordion -->
+          <details style="margin-top:14px;font-size:13px;">
+            <summary style="cursor:pointer;font-weight:500;color:var(--primary);">+ Or enter image URLs manually</summary>
+            <div id="imageInputs" style="margin-top:8px;">
+              <input name="imageUrl" type="url" placeholder="https://example.com/property-photo.jpg" style="margin-bottom:6px;" />
+            </div>
+            <button type="button" class="btn secondary" id="addImage" style="font-size:12px;padding:4px 10px;margin-top:4px;">+ Add another URL</button>
+          </details>
+        </div>
         <div class="toolbar"><button class="btn" type="submit" id="submitProperty">Submit for Admin Approval</button></div>
       </form>
     </div>
@@ -55,25 +81,215 @@
   <script src="js/portal-auth.js"></script>
   <script>
     const form = document.getElementById('propertyForm');
+    const dropzone = document.getElementById('uploadDropzone');
+    const fileInput = document.getElementById('fileInput');
+    const previewGrid = document.getElementById('previewGrid');
+    const storageBadge = document.getElementById('storageStatusBadge');
     const imageInputs = document.getElementById('imageInputs');
-    document.getElementById('addImage').addEventListener('click', () => {
-      if (imageInputs.children.length >= 12) return;
-      const input = document.createElement('input'); input.name = 'imageUrl'; input.type = 'url'; input.placeholder = `https://example.com/property-photo-${imageInputs.children.length + 1}.jpg`; input.style.marginTop = '8px'; imageInputs.appendChild(input);
+
+    // Array of { id, url, previewUrl, name, size, status: 'uploading'|'uploaded'|'error', errorMsg }
+    let uploadedImages = [];
+
+    // Check backend upload config
+    (async () => {
+      try {
+        const cfg = await api.get('/upload/config');
+        if (cfg.supabaseStorageActive) {
+          storageBadge.innerHTML = '☁️ Supabase Cloud Storage active';
+          storageBadge.style.display = 'inline-flex';
+        } else {
+          storageBadge.innerHTML = '💾 Local Storage active (Ready for Cloud deploy)';
+          storageBadge.style.display = 'inline-flex';
+        }
+      } catch (e) {}
+    })();
+
+    // Dropzone click & drag events
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('click', (e) => e.stopPropagation());
+
+    ['dragenter', 'dragover'].forEach(name => {
+      dropzone.addEventListener(name, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('dragover');
+      });
     });
+
+    ['dragleave', 'drop'].forEach(name => {
+      dropzone.addEventListener(name, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('dragover');
+      });
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      if (dt && dt.files && dt.files.length) {
+        handleFiles(dt.files);
+      }
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files && fileInput.files.length) {
+        handleFiles(fileInput.files);
+        fileInput.value = '';
+      }
+    });
+
+    async function handleFiles(files) {
+      const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+      if (!validFiles.length) {
+        alert('Please select valid image files (JPG, PNG, WEBP, etc.).');
+        return;
+      }
+
+      if (uploadedImages.length + validFiles.length > 12) {
+        alert(`You can upload a maximum of 12 images. Only the first ${12 - uploadedImages.length} images will be added.`);
+        validFiles.splice(12 - uploadedImages.length);
+      }
+
+      if (!validFiles.length) return;
+
+      const formData = new FormData();
+      const newItems = [];
+
+      validFiles.forEach(file => {
+        const id = 'img_' + Math.random().toString(36).substring(2, 9);
+        const previewUrl = URL.createObjectURL(file);
+        const item = {
+          id,
+          file,
+          previewUrl,
+          name: file.name,
+          size: file.size,
+          url: null,
+          status: 'uploading'
+        };
+        uploadedImages.push(item);
+        newItems.push(item);
+        formData.append('images', file);
+      });
+
+      renderPreviews();
+
+      try {
+        const res = await api.upload('/upload/property-images', formData);
+        if (res && res.urls && Array.isArray(res.urls)) {
+          res.urls.forEach((url, idx) => {
+            if (newItems[idx]) {
+              newItems[idx].url = url;
+              newItems[idx].status = 'uploaded';
+            }
+          });
+        }
+      } catch (err) {
+        newItems.forEach(item => {
+          if (!item.url) {
+            item.status = 'error';
+            item.errorMsg = err.message || 'Upload failed';
+          }
+        });
+      } finally {
+        renderPreviews();
+      }
+    }
+
+    function removeImage(id) {
+      const idx = uploadedImages.findIndex(img => img.id === id);
+      if (idx !== -1) {
+        if (uploadedImages[idx].previewUrl) {
+          try { URL.revokeObjectURL(uploadedImages[idx].previewUrl); } catch (e) {}
+        }
+        uploadedImages.splice(idx, 1);
+        renderPreviews();
+      }
+    }
+
+    function renderPreviews() {
+      if (!uploadedImages.length) {
+        previewGrid.innerHTML = '';
+        return;
+      }
+
+      previewGrid.innerHTML = uploadedImages.map((img, idx) => `
+        <div class="preview-card" data-id="${img.id}">
+          <img src="${img.url || img.previewUrl}" alt="${escapeHtml(img.name)}" onerror="this.src='images/properties/placeholder.jpg'" />
+          ${idx === 0 ? '<span class="badge-cover">Cover Photo</span>' : ''}
+          <button type="button" class="btn-remove" onclick="removeImage('${img.id}')" title="Remove image">&times;</button>
+          <div class="upload-status-indicator ${img.status}">
+            ${img.status === 'uploading' ? '⏳ Uploading...' : img.status === 'uploaded' ? '✓ Uploaded' : '⚠️ Error'}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Manual URL inputs
+    document.getElementById('addImage').addEventListener('click', () => {
+      const currentInputs = imageInputs.querySelectorAll('input[name="imageUrl"]');
+      if (currentInputs.length >= 12) return;
+      const input = document.createElement('input');
+      input.name = 'imageUrl';
+      input.type = 'url';
+      input.placeholder = `https://example.com/property-photo-${currentInputs.length + 1}.jpg`;
+      input.style.marginBottom = '6px';
+      imageInputs.appendChild(input);
+    });
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const btn = document.getElementById('submitProperty'); btn.disabled = true; btn.textContent = 'Submitting...';
-      document.getElementById('formAlert').innerHTML = '';
-      const fd = new FormData(form); const body = Object.fromEntries(fd.entries());
-      body.images = [...document.querySelectorAll('[name="imageUrl"]')].map(x => x.value.trim()).filter(Boolean);
+      const btn = document.getElementById('submitProperty');
+      const alertBox = document.getElementById('formAlert');
+      alertBox.innerHTML = '';
+
+      // Check if any uploads are still in progress
+      if (uploadedImages.some(img => img.status === 'uploading')) {
+        alertBox.innerHTML = '<div class="alert warning">Please wait for photos to finish uploading before submitting.</div>';
+        return;
+      }
+
+      // Collect uploaded photos
+      const uploadedUrls = uploadedImages
+        .filter(img => img.status === 'uploaded' && img.url)
+        .map(img => img.url);
+
+      // Collect manual URLs
+      const manualUrls = [...document.querySelectorAll('[name="imageUrl"]')]
+        .map(x => x.value.trim())
+        .filter(Boolean);
+
+      const allImages = [...uploadedUrls, ...manualUrls];
+
+      if (!allImages.length) {
+        alertBox.innerHTML = '<div class="alert error">Please upload or enter at least one property image.</div>';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting Property...';
+
+      const fd = new FormData(form);
+      const body = Object.fromEntries(fd.entries());
+      delete body.imageUrl;
+      body.images = allImages;
       body.amenities = String(body.amenities || '').split(',').map(x => x.trim()).filter(Boolean);
+
       try {
         await api.post('/owner/properties', body);
-        document.getElementById('formAlert').innerHTML = '<div class="alert success">Property submitted. Admin approval is required before it becomes public.</div>';
-        form.reset(); document.querySelector('[name="state"]').value = 'Andhra Pradesh'; imageInputs.innerHTML = '<input name="imageUrl" type="url" required placeholder="https://example.com/property-photo-1.jpg" />';
-        loadProperties();
-      } catch (err) { document.getElementById('formAlert').innerHTML = `<div class="alert error">${escapeHtml(err.message)}</div>`; }
-      finally { btn.disabled = false; btn.textContent = 'Submit for Admin Approval'; }
+        alertBox.innerHTML = '<div class="alert success">Property submitted successfully! Admin review is in progress.</div>';
+        form.reset();
+        document.querySelector('[name="state"]').value = 'Andhra Pradesh';
+        uploadedImages = [];
+        renderPreviews();
+        imageInputs.innerHTML = '<input name="imageUrl" type="url" placeholder="https://example.com/property-photo.jpg" style="margin-bottom:6px;" />';
+        await loadProperties();
+      } catch (err) {
+        alertBox.innerHTML = `<div class="alert error">${escapeHtml(err.message)}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit for Admin Approval';
+      }
     });
 
     async function loadProperties() {

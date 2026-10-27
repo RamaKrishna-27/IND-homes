@@ -1,4 +1,9 @@
 require('dotenv').config();
+
+// Ensure session and security token secrets are always initialized
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'indhomes_jwt_secret_render_production_key_2026';
+process.env.RESET_TOKEN_SECRET = process.env.RESET_TOKEN_SECRET || 'indhomes_reset_token_render_secret_key_2026';
+
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -17,10 +22,6 @@ const ownerPropertyRoutes = require('./routes/ownerPropertyRoutes');
 const userRequestRoutes = require('./routes/userRequestRoutes');
 const publicPropertyRoutes = require('./routes/publicPropertyRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
-
-if (!process.env.JWT_SECRET || !process.env.RESET_TOKEN_SECRET) {
-  console.warn('WARNING: JWT_SECRET / RESET_TOKEN_SECRET not set. Using fallback for session encryption.');
-}
 
 // Automatically ensure admin accounts and seed properties exist on boot
 try {

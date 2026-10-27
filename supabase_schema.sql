@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS owners (
   owner_type TEXT DEFAULT 'Individual',
   verification_status TEXT DEFAULT 'UNVERIFIED',
   account_status TEXT DEFAULT 'ACTIVE',
+  reset_token_hash TEXT,
+  reset_token_expires BIGINT,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -33,6 +35,8 @@ CREATE TABLE IF NOT EXISTS users (
   city TEXT,
   password_hash TEXT NOT NULL,
   account_status TEXT DEFAULT 'ACTIVE',
+  reset_token_hash TEXT,
+  reset_token_expires BIGINT,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -124,3 +128,9 @@ CREATE INDEX IF NOT EXISTS idx_properties_owner_id ON properties(owner_id);
 CREATE INDEX IF NOT EXISTS idx_contact_requests_user_id ON contact_requests(user_id);
 CREATE INDEX IF NOT EXISTS idx_contact_requests_owner_id ON contact_requests(owner_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_audience ON notifications(audience, is_read);
+
+-- Safe migrations for password resets on existing databases
+ALTER TABLE owners ADD COLUMN IF NOT EXISTS reset_token_hash TEXT;
+ALTER TABLE owners ADD COLUMN IF NOT EXISTS reset_token_expires BIGINT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_hash TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires BIGINT;

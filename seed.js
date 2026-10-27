@@ -254,7 +254,33 @@ async function seedSampleData() {
   console.log('Sample data seeded: 4 owners, 3 users, 13 properties across India, 3 contact requests.');
 }
 
+async function ensureResetColumns() {
+  try {
+    if (db.isPostgres) {
+      await db.exec(`
+        ALTER TABLE owners ADD COLUMN IF NOT EXISTS reset_token_hash TEXT;
+        ALTER TABLE owners ADD COLUMN IF NOT EXISTS reset_token_expires BIGINT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_hash TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires BIGINT;
+      `);
+    } else {
+      const addCol = async (table, col, type) => {
+        try {
+          await db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${type}`);
+        } catch (_) {}
+      };
+      await addCol('owners', 'reset_token_hash', 'TEXT');
+      await addCol('owners', 'reset_token_expires', 'INTEGER');
+      await addCol('users', 'reset_token_hash', 'TEXT');
+      await addCol('users', 'reset_token_expires', 'INTEGER');
+    }
+  } catch (err) {
+    console.warn('Note verifying password reset columns:', err.message);
+  }
+}
+
 async function runSeed() {
+  await ensureResetColumns();
   await upsertAdmin();
   await seedSampleData();
   console.log('IND Homes database verified and ready.');

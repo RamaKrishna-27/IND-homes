@@ -20,7 +20,26 @@ async function loadProperty() {
   try {
     const { property: p, authenticated } = await api.get(`/properties/${encodeURIComponent(id)}`);
 
-    if (authenticated) loginLink.textContent = 'My Account';
+    if (authenticated) {
+      loginLink.textContent = 'My Account';
+      loginLink.href = 'user-dashboard.html';
+
+      if (!document.getElementById('detailsLogoutBtn')) {
+        const logoutBtn = document.createElement('button');
+        logoutBtn.id = 'detailsLogoutBtn';
+        logoutBtn.className = 'btn secondary';
+        logoutBtn.style.color = '#c82333';
+        logoutBtn.style.marginLeft = '8px';
+        logoutBtn.textContent = 'Logout';
+        logoutBtn.onclick = () => {
+          api.post('/user/auth/logout').finally(() => {
+            localStorage.removeItem('user_token');
+            window.location.reload();
+          });
+        };
+        loginLink.insertAdjacentElement('afterend', logoutBtn);
+      }
+    }
 
     const ownerContact = authenticated
       ? `

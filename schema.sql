@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS owners (
   owner_type TEXT DEFAULT 'Individual',
   verification_status TEXT DEFAULT 'UNVERIFIED', -- UNVERIFIED, VERIFIED
   account_status TEXT DEFAULT 'ACTIVE', -- ACTIVE, SUSPENDED, DELETED
+  reset_token_hash TEXT,
+  reset_token_expires INTEGER,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -30,6 +32,8 @@ CREATE TABLE IF NOT EXISTS users (
   city TEXT,
   password_hash TEXT NOT NULL,
   account_status TEXT DEFAULT 'ACTIVE', -- ACTIVE, SUSPENDED, DELETED
+  reset_token_hash TEXT,
+  reset_token_expires INTEGER,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 

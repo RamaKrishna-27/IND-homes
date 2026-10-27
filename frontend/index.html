@@ -13,10 +13,10 @@
   <main class="main" style="max-width:1200px;margin:0 auto;">
     <div class="topbar">
       <h2>IND Homes</h2>
-      <div class="nav-actions">
+      <div class="nav-actions" id="topNavActions">
         <a href="public-properties.html" class="btn secondary">Properties</a>
         <a href="user-login.html" class="btn secondary" id="userLoginLink">User Login</a>
-        <a href="owner-login.html" class="btn secondary">List Property</a>
+        <a href="owner-login.html" class="btn secondary" id="ownerLoginLink">List Property</a>
         <a href="admin-login.html" class="btn">Admin Login</a>
       </div>
     </div>
@@ -49,13 +49,45 @@
     </section>
   </main>
   <script src="js/api.js"></script>
+  <script src="js/portal-auth.js"></script>
   <script>
     const featured = document.getElementById('featured');
     const userToken = localStorage.getItem('user_token');
+    const ownerToken = localStorage.getItem('owner_token');
     const userLoginLink = document.getElementById('userLoginLink');
+    const ownerLoginLink = document.getElementById('ownerLoginLink');
+    const navActions = document.getElementById('topNavActions');
+
     if (userToken && userLoginLink) {
       userLoginLink.textContent = 'My Account';
       userLoginLink.href = 'user-dashboard.html';
+
+      const logoutBtn = document.createElement('a');
+      logoutBtn.href = '#';
+      logoutBtn.className = 'btn secondary';
+      logoutBtn.textContent = 'Logout (User)';
+      logoutBtn.style.color = '#c82333';
+      logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        logoutAs('user');
+      });
+      userLoginLink.insertAdjacentElement('afterend', logoutBtn);
+    }
+
+    if (ownerToken && ownerLoginLink) {
+      ownerLoginLink.textContent = 'Owner Dashboard';
+      ownerLoginLink.href = 'owner-dashboard.html';
+
+      const ownerLogoutBtn = document.createElement('a');
+      ownerLogoutBtn.href = '#';
+      ownerLogoutBtn.className = 'btn secondary';
+      ownerLogoutBtn.textContent = 'Logout (Owner)';
+      ownerLogoutBtn.style.color = '#c82333';
+      ownerLogoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        logoutAs('owner');
+      });
+      ownerLoginLink.insertAdjacentElement('afterend', ownerLogoutBtn);
     }
 
     function renderLoading() {

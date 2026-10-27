@@ -56,6 +56,8 @@
     // Check if owner is already logged in
     (async () => {
       try {
+        const token = localStorage.getItem('owner_token');
+        if (!token) return;
         const data = await api.get('/owner/auth/me');
         if (data && data.owner) {
           const banner = document.getElementById('alreadyLoggedIn');
@@ -69,7 +71,6 @@
         }
       } catch (_) {}
     })();
-  </script>
   </script>
 </body>
 </html>

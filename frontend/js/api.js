@@ -55,10 +55,14 @@ async function apiRequest(path, { method = 'GET', body, timeoutMs = 25000 } = {}
   }
 
   if (!res.ok) {
-    if (res.status === 401 && !path.includes('/auth/login') && !path.includes('/auth/register')) {
-      // Session expired - bounce to the matching login page
-      const loginPage = kind === 'owner' ? 'owner-login.html' : kind === 'user' ? 'user-login.html' : 'admin-login.html';
-      window.location.href = loginPage;
+    if (res.status === 401) {
+      const currentPath = typeof window !== 'undefined' ? (window.location.pathname || '') : '';
+      const isAuthPage = currentPath.includes('login') || currentPath.includes('register') || currentPath.includes('forgot') || currentPath.includes('reset');
+      // Only auto-redirect to login if we are on a protected app page, never while on auth/login pages or checking /auth/me
+      if (!isAuthPage && !path.includes('/auth/')) {
+        const loginPage = kind === 'owner' ? 'owner-login.html' : kind === 'user' ? 'user-login.html' : 'admin-login.html';
+        window.location.href = loginPage;
+      }
     }
     throw new Error(data.error || `Request failed (${res.status})`);
   }
